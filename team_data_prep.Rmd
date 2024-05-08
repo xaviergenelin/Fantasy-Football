@@ -1,0 +1,148 @@
+---
+title: "Team Data"
+author: "Xavier Genelin"
+---
+
+This file will focus on getting team related data ready for use in the R Shiny application. The following libraries will be needed:
+* tidyverse
+* nflverse
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(nflverse)
+```
+
+# Offense
+
+This section will focus on offensive data for each team. One will be broken out into running plays and the other into passing plays. At the end, both will be combined to give one dataframe for team offensive data
+
+```{r}
+# load player ids with their position
+ids <- load_players() %>%
+  select(position, gsis_id)
+
+ids
+```
+
+```{r}
+# load participation stats for each play
+participation <- load_participation()
+
+participation
+```
+
+```{r pbp}
+# load in play by play data and only get regular season plays
+pbp <- load_pbp() %>%
+  filter(season_type == "REG") %>%
+  # get the position of the passer
+  left_join(ids, by = c("passer_player_id" = "gsis_id")) %>%
+  rename(passer_position = position) %>%
+  # get the position of the rusher
+  left_join(ids, by = c("rusher_player_id" = "gsis_id")) %>%
+  rename(rusher_position = position) %>%
+  # get the position of the receiver
+  left_join(ids, by = c("receiver_player_id" = "gsis_id")) %>%
+  rename(receiver_position = position) %>%
+  # add in additional play information
+  left_join(participation, by = c("game_id" = "nflverse_game_id", "play_id" = "play_id"), suffix = c("", "_remove")) %>%
+  select(-contains("_remove"))
+
+pbp
+```
+
+```{r}
+colnames(pbp)
+```
+## Offensive Rushing
+
+```{r}
+# filter the play by play data to get just rushing plays
+rushing <- pbp %>%
+  # don't include 2 point conversions (that will be used later) or plays that are listed as a penalty
+  filter(rush_attempt == 1 & play_type_nfl != "PAT2" & play_type_nfl != "PENALTY")
+
+rushing
+```
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Get rushes inside the redzone, 10 yard line, 5 yard line and by position
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+```{r}
+# get season rushing data of interest for each team and season
+rushing_agg <- rushing %>%
+  group_by(posteam, season) %>%
+  summarise(carries = sum(rush_attempt),
+            rush_yards = sum(rushing_yards),
+            rush_td = sum(rush_touchdown),
+            rush_fumble = sum(fumble),
+            rushers_used = n_distinct(rusher_player_id),
+            qb_carries = sum(ifelse(rusher_position == "QB", 1, 0)),
+            qb_rushers = n_distinct(ifelse(rusher_position == "QB", rusher_player_id, NA)),
+            rb_carries = sum(ifelse(rusher_position == "RB", 1, 0)),
+            rb_rushers = n_distinct(ifelse(rusher_position == "RB", rusher_player_id, NA)),
+            wr_carries = sum(ifelse(rusher_position == "WR", 1, 0)),
+            wr_rushers = n_distinct(ifelse(rusher_position == "WR", rusher_player_id, NA)),
+            te_carries = sum(ifelse(rusher_position == "TE", 1, 0)),
+            te_rushers = n_distinct(ifelse(rusher_position == "TE", rusher_player_id, NA)),
+            qb_scramble = sum(qb_scramble),
+            rush_20plus = sum(ifelse(rushing_yards >= 20, 1, 0)),
+            rush_40plus = sum(ifelse(rushing_yards >= 40, 1, 0)),
+            rush_longest = max(rushing_yards),
+            ###### will need to double check the defenders in box NA values
+            # could be a weird formation from a fake punt/other weird play/formation to give a different defensive personnel
+            rush_stacked_box = sum(ifelse(is.na(defenders_in_box), 0, 
+                                          ifelse(defenders_in_box > 7, 1, 0))),
+            .groups = "drop") %>%
+  mutate(yard_per_car = round(rush_yards/carries, 1),
+         other_carries = carries - qb_carries - rb_carries - wr_carries - te_carries,
+         qb_designed_run = qb_carries - qb_scramble)
+
+rushing_agg
+```
+
+
+## Offensive Passing
+
+
+```{r}
+# filter the play by play data to get just rushing plays
+passing <- pbp %>%
+  # don't include 2 point conversions (that will be used later) or plays that are listed as a penalty
+  filter(pass_attempt == 1 & play_type_nfl != "PAT2" & play_type_nfl != "PENALTY")
+
+passing
+```
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Get passes inside the redzone, 10 yard line, 5 yard line and by position
+Number of WRs, TEs, RBs used in passing game
+Total number of passes to each position group
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+```{r}
+passing_agg <- passing %>%
+  group_by(posteam, season) %>%
+  summarise(passing_yards = sum(ifelse(!is.na(passing_yards), passing_yards, 0)),
+            pass_td = sum(pass_touchdown),
+            pass_attempt = sum(pass_attempt),
+            ints = sum(interception),
+            yac = sum(ifelse(!is.na(yards_after_catch), yards_after_catch, 0)),
+            sacks = sum(sack),
+            completions = sum(complete_pass),
+            pass_20plus = sum(ifelse(yards_gained >= 20, 1, 0)),
+            pass_40plus = sum(ifelse(yards_gained >= 40, 1, 0)),
+            pass_longest = max(yards_gained),
+            ###### will need to check that the NA pass rushers are valid
+            # could be a trick play out of a weird formation or fake punt type of play for a weird defensive personnel
+            pass_against_blitz = sum(ifelse(is.na(number_of_pass_rushers), 0, 
+                                            ifelse(number_of_pass_rushers > 4, 1, 0)))) %>%
+  mutate(pass_attempts = pass_attempt - sacks,
+         completion_pct = round(completions/pass_attempts, 3),
+         yds_per_att = round(passing_yards/pass_attempts, 1)) %>%
+  select(-pass_attempt)
+
+passing_agg
+```
