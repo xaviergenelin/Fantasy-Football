@@ -11,6 +11,7 @@ This file will focus on getting team related data ready for use in the R Shiny a
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(nflverse)
+library(fst)
 ```
 
 ```{r seasons}
@@ -343,11 +344,11 @@ defense_weekly <- merge(rushing_def_weekly, passing_def_weekly, by = c("defteam"
   rename("team" = "defteam")
 ```
 
-# Save to csv files
+# Save to fst files
 
 ```{r team_csvs}
-write.csv(offense_season, "data/team_offense_season.csv", row.names = FALSE)
-write.csv(offense_weekly, "data/team_offense_weekly.csv", row.names = FALSE)
-write.csv(defense_season, "data/team_defense_season.csv", row.names = FALSE)
-write.csv(defense_weekly, "data/team_defense_season.csv", row.names = FALSE)
+write.fst(offense_season, "data/team_offense_season.fst")
+write.fst(offense_weekly, "data/team_offense_weekly.fst")
+write.fst(defense_season, "data/team_defense_season.fst")
+write.fst(defense_weekly, "data/team_defense_season.fst")
 ```
