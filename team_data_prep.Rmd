@@ -58,9 +58,6 @@ pbp <- load_pbp() %>%
 pbp
 ```
 
-```{r}
-colnames(pbp)
-```
 ## Offensive Rushing
 
 ```{r rushing}
@@ -76,9 +73,46 @@ rushing
 Get rushes inside the redzone, 10 yard line, 5 yard line and by position
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-```{r rushing_off_agg}
+### Weekly
+
+```{r rushing_off_weekly}
 # get season rushing data of interest for each team and season
-rushing_off_agg <- rushing %>%
+rushing_off_weekly <- rushing %>%
+  group_by(posteam, season, week) %>%
+  summarise(carries = sum(rush_attempt),
+            rush_yards = sum(rushing_yards),
+            rush_td = sum(rush_touchdown),
+            rush_fumble = sum(fumble),
+            rushers_used = n_distinct(rusher_player_id),
+            qb_carries = sum(ifelse(rusher_position == "QB", 1, 0)),
+            qb_rushers = n_distinct(ifelse(rusher_position == "QB", rusher_player_id, NA)),
+            rb_carries = sum(ifelse(rusher_position == "RB", 1, 0)),
+            rb_rushers = n_distinct(ifelse(rusher_position == "RB", rusher_player_id, NA)),
+            wr_carries = sum(ifelse(rusher_position == "WR", 1, 0)),
+            wr_rushers = n_distinct(ifelse(rusher_position == "WR", rusher_player_id, NA)),
+            te_carries = sum(ifelse(rusher_position == "TE", 1, 0)),
+            te_rushers = n_distinct(ifelse(rusher_position == "TE", rusher_player_id, NA)),
+            qb_scramble = sum(qb_scramble),
+            rush_20plus = sum(ifelse(rushing_yards >= 20, 1, 0)),
+            rush_40plus = sum(ifelse(rushing_yards >= 40, 1, 0)),
+            rush_longest = max(rushing_yards),
+            ###### will need to double check the defenders in box NA values
+            # could be a weird formation from a fake punt/other weird play/formation to give a different defensive personnel
+            rush_stacked_box = sum(ifelse(is.na(defenders_in_box), 0, 
+                                          ifelse(defenders_in_box > 7, 1, 0))),
+            .groups = "drop") %>%
+  mutate(yard_per_car = round(rush_yards/carries, 1),
+         other_carries = carries - qb_carries - rb_carries - wr_carries - te_carries,
+         qb_designed_run = qb_carries - qb_scramble)
+
+rushing_off_weekly
+```
+
+### Season
+
+```{r rushing_off_season}
+# get season rushing data of interest for each team and season
+rushing_off_season <- rushing %>%
   group_by(posteam, season) %>%
   summarise(carries = sum(rush_attempt),
             rush_yards = sum(rushing_yards),
@@ -106,9 +140,8 @@ rushing_off_agg <- rushing %>%
          other_carries = carries - qb_carries - rb_carries - wr_carries - te_carries,
          qb_designed_run = qb_carries - qb_scramble)
 
-rushing_off_agg
+rushing_off_season
 ```
-
 
 ## Offensive Passing
 
@@ -128,8 +161,39 @@ Number of WRs, TEs, RBs used in passing game
 Total number of passes to each position group
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-```{r passing_off_agg}
-passing_off_agg <- passing %>%
+### Weekly
+
+```{r passing_off_weekly}
+passing_off_weekly <- passing %>%
+  group_by(posteam, season, week) %>%
+  summarise(passing_yards = sum(ifelse(!is.na(passing_yards), passing_yards, 0)),
+            pass_td = sum(pass_touchdown),
+            pass_attempt = sum(pass_attempt),
+            ints = sum(interception),
+            yac = sum(ifelse(!is.na(yards_after_catch), yards_after_catch, 0)),
+            sacks = sum(sack),
+            completions = sum(complete_pass),
+            pass_20plus = sum(ifelse(yards_gained >= 20, 1, 0)),
+            pass_40plus = sum(ifelse(yards_gained >= 40, 1, 0)),
+            pass_longest = max(yards_gained),
+            ###### will need to check that the NA pass rushers are valid
+            # could be a trick play out of a weird formation or fake punt type of play for a weird defensive personnel
+            pass_against_blitz = sum(ifelse(is.na(number_of_pass_rushers), 0, 
+                                            ifelse(number_of_pass_rushers > 4, 1, 0)))) %>%
+  mutate(pass_attempts = pass_attempt - sacks,
+         completion_pct = round(completions/pass_attempts, 3),
+         yds_per_att = round(passing_yards/pass_attempts, 1)) %>%
+  select(-pass_attempt)
+
+passing_off_weekly
+```
+
+
+
+### Season
+
+```{r passing_off_season}
+passing_off_season <- passing %>%
   group_by(posteam, season) %>%
   summarise(passing_yards = sum(ifelse(!is.na(passing_yards), passing_yards, 0)),
             pass_td = sum(pass_touchdown),
@@ -150,14 +214,15 @@ passing_off_agg <- passing %>%
          yds_per_att = round(passing_yards/pass_attempts, 1)) %>%
   select(-pass_attempt)
 
-passing_off_agg
+passing_off_season
 ```
 
-```{r offense_agg}
-offense_agg <- merge(rushing_off_agg, passing_off_agg, by = c("posteam", "season")) %>%
+```{r offense_merge}
+offense_season <- merge(rushing_off_season, passing_off_season, by = c("posteam", "season")) %>%
   rename("team" = "posteam")
 
-offense_agg
+offense_weekly <- merge(rushing_off_weekly, passing_off_weekly, by = c("posteam", "season", "week")) %>%
+  rename("team" = "posteam")
 ```
 
 ## Defense
@@ -166,8 +231,34 @@ This section will get a lot of the same information as above, but now for the de
 
 ## Defense Rushing
 
-```{r rushing_def_agg}
-rushing_def_agg <- rushing %>%
+### Weekly
+
+```{r rushing_def_weekly}
+rushing_def_weekly <- rushing %>%
+  group_by(defteam, season, week) %>%
+  summarise(carries = sum(rush_attempt),
+            rush_yards = sum(rushing_yards),
+            rush_td = sum(rush_touchdown),
+            rush_fumble = sum(fumble),
+            qb_scramble = sum(qb_scramble),
+            rush_20plus = sum(ifelse(rushing_yards >= 20, 1, 0)),
+            rush_40plus = sum(ifelse(rushing_yards >= 40, 1, 0)),
+            rush_longest = max(rushing_yards),
+            ###### will need to double check the defenders in box NA values
+            # could be a weird formation from a fake punt/other weird play/formation to give a different defensive personnel
+            rush_stacked_box = sum(ifelse(is.na(defenders_in_box), 0, 
+                                          ifelse(defenders_in_box > 7, 1, 0))),
+            .groups = "drop") %>%
+  mutate(yard_per_car = round(rush_yards/carries, 1))
+
+rushing_def_weekly
+```
+
+
+### Season
+
+```{r rushing_def_season}
+rushing_def_season <- rushing %>%
   group_by(defteam, season) %>%
   summarise(carries = sum(rush_attempt),
             rush_yards = sum(rushing_yards),
@@ -184,13 +275,43 @@ rushing_def_agg <- rushing %>%
             .groups = "drop") %>%
   mutate(yard_per_car = round(rush_yards/carries, 1))
 
-rushing_def_agg
+rushing_def_season
 ```
 
 ## Defense Passing
 
-```{r passing_def_agg}
-passing_def_agg <- passing %>%
+### Weekly
+
+```{r passing_def_weekly}
+passing_def_weekly <- passing %>%
+  group_by(defteam, season, week) %>%
+  summarise(passing_yards = sum(ifelse(!is.na(passing_yards), passing_yards, 0)),
+            pass_td = sum(pass_touchdown),
+            pass_attempt = sum(pass_attempt),
+            ints = sum(interception),
+            yac = sum(ifelse(!is.na(yards_after_catch), yards_after_catch, 0)),
+            sacks = sum(sack),
+            completions = sum(complete_pass),
+            pass_20plus = sum(ifelse(yards_gained >= 20, 1, 0)),
+            pass_40plus = sum(ifelse(yards_gained >= 40, 1, 0)),
+            pass_longest = max(yards_gained),
+            ###### will need to check that the NA pass rushers are valid
+            # could be a trick play out of a weird formation or fake punt type of play for a weird defensive personnel
+            pass_against_blitz = sum(ifelse(is.na(number_of_pass_rushers), 0, 
+                                            ifelse(number_of_pass_rushers > 4, 1, 0)))) %>%
+  mutate(pass_attempts = pass_attempt - sacks,
+         completion_pct = round(completions/pass_attempts, 3),
+         yds_per_att = round(passing_yards/pass_attempts, 1)) %>%
+  select(-pass_attempt)
+
+passing_def_weekly
+```
+
+
+### Season
+
+```{r passing_def_season}
+passing_def_season <- passing %>%
   group_by(defteam, season) %>%
   summarise(passing_yards = sum(ifelse(!is.na(passing_yards), passing_yards, 0)),
             pass_td = sum(pass_touchdown),
@@ -211,20 +332,22 @@ passing_def_agg <- passing %>%
          yds_per_att = round(passing_yards/pass_attempts, 1)) %>%
   select(-pass_attempt)
 
-passing_def_agg
+passing_def_season
 ```
 
-```{r defense_agg}
-defense_agg <- merge(rushing_def_agg, passing_def_agg, by = c("defteam", "season")) %>%
+```{r defense_merge}
+defense_season <- merge(rushing_def_season, passing_def_season, by = c("defteam", "season")) %>%
   rename("team" = "defteam")
 
-offense_agg
+defense_weekly <- merge(rushing_def_weekly, passing_def_weekly, by = c("defteam", "season", "week")) %>%
+  rename("team" = "defteam")
 ```
 
 # Save to csv files
 
-```{r}
-write.csv(offense_agg, "data/offense_agg.csv", row.names = FALSE)
-write.csv(defense_agg, "data/defense_agg.csv", row.names = FALSE)
+```{r team_csvs}
+write.csv(offense_season, "data/team_offense_season.csv", row.names = FALSE)
+write.csv(offense_weekly, "data/team_offense_weekly.csv", row.names = FALSE)
+write.csv(defense_season, "data/team_defense_season.csv", row.names = FALSE)
+write.csv(defense_weekly, "data/team_defense_season.csv", row.names = FALSE)
 ```
-
