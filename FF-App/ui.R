@@ -301,14 +301,14 @@ shinyUI(navbarPage(
             div(
               # First player box
               id = "player_box1",
-              shinydashboard::box(
+              box(
                 id = "box1",
                 width = 3,
                 solidHeader = TRUE,
                 fluidRow(align = "center", 
                          htmlOutput("player1_name")),
                 fluidRow(align = "center", 
-                         "Picture"),
+                         htmlOutput("player1_pic")),
                 fluidRow(align = "center", 
                          "Value1"),
                 fluidRow(align = "center", 
@@ -318,13 +318,13 @@ shinyUI(navbarPage(
             div(
               # Second player 
               id = "player_box2",
-              shinydashboard::box(
+              box(
                 id = "box2",
                 width = 3,
                 fluidRow(align = "center", 
                          htmlOutput("player2_name")),
                 fluidRow(align = "center", 
-                         "Picture"),
+                         htmlOutput("player2_pic")),
                 fluidRow(align = "center", 
                          "Value2"),
                 fluidRow(align = "center", 
@@ -334,13 +334,13 @@ shinyUI(navbarPage(
             div(
               # Third player box
               id = "player_box3",
-              shinydashboard::box(
+              box(
                 id = "box3",
                 width = 3,
                 fluidRow(align = "center", 
                          htmlOutput("player3_name")),
                 fluidRow(align = "center", 
-                         "Picture"),
+                         htmlOutput("player3_pic")),
                 fluidRow(align = "center", 
                          "Value3"),
                 fluidRow(align = "center", 
@@ -350,13 +350,13 @@ shinyUI(navbarPage(
             div(
               # Fourth player box
               id = "player_box4",
-              shinydashboard::box(
+              box(
                 id = "box4",
                 width = 3,
                 fluidRow(align = "center", 
                          htmlOutput("player4_name")),
                 fluidRow(align = "center", 
-                         "Picture"),
+                         htmlOutput("player4_pic")),
                 fluidRow(align = "center", 
                          "Value4"),
                 fluidRow(align = "center", 

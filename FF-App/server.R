@@ -242,7 +242,7 @@ shinyServer(function(input, output, session) {
   })
   
   p1_headshot <- reactive({
-    c(unique(player1_data$headshot_url))
+    c(unique(player1_data()$headshot_url))
   })
   
   output$player1_pic <- renderText({
@@ -258,6 +258,19 @@ shinyServer(function(input, output, session) {
     player_list()[2]
   })
   
+  player2_data <- reactive({
+    playerCompData() %>%
+      filter(player_display_name == player_list()[2])
+  })
+  
+  p2_headshot <- reactive({
+    c(unique(player2_data()$headshot_url))
+  })
+  
+  output$player2_pic <- renderText({
+    c("<img src='", substring(p2_headshot()[1], 1), "', height = '90%', width = '90%'>")
+  })
+  
   ###########################
   ########## Box 3 ##########
   ###########################
@@ -266,12 +279,38 @@ shinyServer(function(input, output, session) {
     player_list()[3]
   })
   
+  player3_data <- reactive({
+    playerCompData() %>%
+      filter(player_display_name == player_list()[3])
+  })
+  
+  p3_headshot <- reactive({
+    c(unique(player3_data()$headshot_url))
+  })
+  
+  output$player3_pic <- renderText({
+    c("<img src='", substring(p3_headshot()[1], 1), "', height = '90%', width = '90%'>")
+  })
+  
   ###########################
   ########## Box 4 ##########
   ###########################
   
   output$player4_name <- renderText({
     player_list()[4]
+  })
+  
+  player4_data <- reactive({
+    playerCompData() %>%
+      filter(player_display_name == player_list()[4])
+  })
+  
+  p4_headshot <- reactive({
+    c(unique(player4_data()$headshot_url))
+  })
+  
+  output$player4_pic <- renderText({
+    c("<img src='", substring(p4_headshot()[1], 1), "', height = '90%', width = '90%'>")
   })
   
   # Limits the multiInput for only 4 players to be chosen at most
