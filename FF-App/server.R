@@ -5,6 +5,8 @@ library(tidyverse)
 library(fst)
 library(DT)
 library(shinyWidgets)
+library(shinydashboard)
+library(shinyjs)
 
 # load data to use throughout the app
 player_season <- read.fst("../data/player_season.fst")
@@ -178,21 +180,24 @@ shinyServer(function(input, output, session) {
       filter(player_display_name %in% input$playerCompPlayers)
   })
   
-  # create a list of the players used for comparison
+  # create a list of the players names 
   player_list <- reactive({
     c(unique(playerCompData()$player_display_name))
   })
   
-  # hide the boxes until a user is chosen
+  
+  #### hide the boxes until a player is chosen
   observe(
+    ## player 1
     if(is.na(player_list()[1])){
-      shinyjs::hide(id = "player_box1")
+      shinyjs::hide(id = "player_box1", asis = TRUE)
     } else {
       shinyjs::show(id = "player_box1")
     }
   )
   
   observe(
+    ## player 2
     if(is.na(player_list()[2])){
       shinyjs::hide(id = "player_box2")
     } else {
@@ -201,6 +206,7 @@ shinyServer(function(input, output, session) {
   )
   
   observe(
+    ## player 3
     if(is.na(player_list()[3])){
       shinyjs::hide(id = "player_box3")
     } else {
@@ -209,6 +215,7 @@ shinyServer(function(input, output, session) {
   )
   
   observe(
+    ## player 4
     if(is.na(player_list()[4])){
       shinyjs::hide(id = "player_box4")
     } else {
@@ -219,4 +226,88 @@ shinyServer(function(input, output, session) {
   output$plyaerCompTest <- renderDT({
     datatable(playerCompData())
   })
+  
+  
+  ###########################
+  ########## Box 1 ##########
+  ###########################
+
+  output$player1_name <- renderText({
+    player_list()[1]
+  })
+  
+  player1_data <- reactive({
+    playerCompData() %>%
+      filter(player_display_name == player_list()[1])
+  })
+  
+  p1_headshot <- reactive({
+    c(unique(player1_data$headshot_url))
+  })
+  
+  output$player1_pic <- renderText({
+    c("<img src='", substring(p1_headshot()[1], 1), "', height = '90%', width = '90%'>")
+  })
+
+  
+  ###########################
+  ########## Box 2 ##########
+  ###########################
+  
+  output$player2_name <- renderText({
+    player_list()[2]
+  })
+  
+  ###########################
+  ########## Box 3 ##########
+  ###########################
+  
+  output$player3_name <- renderText({
+    player_list()[3]
+  })
+  
+  ###########################
+  ########## Box 4 ##########
+  ###########################
+  
+  output$player4_name <- renderText({
+    player_list()[4]
+  })
+  
+  # Limits the multiInput for only 4 players to be chosen at most
+  
+  remove_choice <- reactiveValues(limit = 0)
+  
+  observeEvent(input$playerCompPlayers, {
+    if(length(input$playerCompPlayers) > 3){
+      if(remove_choice$limit == 0){
+        remove_choice$limit <- 1
+      }
+    } else{
+      if(remove_choice$limit == 1){
+        remove_choice$limit <- 0
+      }
+    }
+  })
+  
+  observeEvent(remove_choice$limit, {
+    if(remove_choice$limit == 1){
+      updateMultiInput(
+        session = session,
+        inputId = "playerCompPlayers",
+        choices = input$playerCompPlayers,
+        selected = input$playerCompPlayers
+      )
+    } else {
+      updateMultiInput(
+        session = session,
+        inputId = "playerCompPlayers",
+        choices = str_sort(unique(player_season$player_display_name)),
+        selected = input$playerCompPlayers
+      )
+    }
+  })
+  
 })
+
+

@@ -6,6 +6,7 @@ library(fst)
 library(DT)
 library(shinyWidgets)
 library(shinydashboard)
+library(shinyjs)
 
 # load data to use throughout the app
 player_season <- read.fst("../data/player_season.fst")
@@ -16,6 +17,7 @@ team_season <- read.fst("../data/team_season.fst")
 # Define UI for application that analyzes NFL data
 shinyUI(navbarPage(
   title = "Fantasy Football",
+  useShinyjs(),
   theme = shinytheme("cosmo"),
   tabsetPanel(
     
@@ -61,6 +63,7 @@ shinyUI(navbarPage(
     
     navbarMenu(
       title = "Team",
+      useShinyjs(),
       
       tabPanel(
         title = "Data Table",
@@ -277,9 +280,10 @@ shinyUI(navbarPage(
         sidebarPanel(
           multiInput(
             inputId = "playerCompPlayers",
-            label = "Select player(s)",
+            label = "Select up to 4 players",
             choices = str_sort(unique(player_season$player_display_name)),
-            selected = NULL
+            selected = NULL,
+            options = list(max = 4)
           ),
           
           pickerInput(
@@ -297,70 +301,71 @@ shinyUI(navbarPage(
             div(
               # First player box
               id = "player_box1",
-              box(
+              shinydashboard::box(
                 id = "box1",
                 width = 3,
                 solidHeader = TRUE,
                 fluidRow(align = "center", 
-                         "Name"),
+                         htmlOutput("player1_name")),
                 fluidRow(align = "center", 
                          "Picture"),
                 fluidRow(align = "center", 
                          "Value1"),
                 fluidRow(align = "center", 
-                         "Value2")
+                         "Test1")
               )
             ),
             div(
               # Second player 
               id = "player_box2",
-              box(
+              shinydashboard::box(
                 id = "box2",
                 width = 3,
                 fluidRow(align = "center", 
-                         "Name"),
+                         htmlOutput("player2_name")),
                 fluidRow(align = "center", 
                          "Picture"),
                 fluidRow(align = "center", 
-                         "Value1"),
+                         "Value2"),
                 fluidRow(align = "center", 
-                         "Value2")
+                         "Test2")
               )
             ),
             div(
               # Third player box
               id = "player_box3",
-              box(
+              shinydashboard::box(
                 id = "box3",
                 width = 3,
                 fluidRow(align = "center", 
-                         "Name"),
+                         htmlOutput("player3_name")),
                 fluidRow(align = "center", 
                          "Picture"),
                 fluidRow(align = "center", 
-                         "Value1"),
+                         "Value3"),
                 fluidRow(align = "center", 
-                         "Value2")
+                         "Test3")
               )
             ),
             div(
               # Fourth player box
               id = "player_box4",
-              box(
+              shinydashboard::box(
                 id = "box4",
                 width = 3,
                 fluidRow(align = "center", 
-                         "Name"),
+                         htmlOutput("player4_name")),
                 fluidRow(align = "center", 
                          "Picture"),
                 fluidRow(align = "center", 
-                         "Value1"),
+                         "Value4"),
                 fluidRow(align = "center", 
-                         "Value2")
+                         "Test4")
               )
             ),
             
-            DTOutput("plyaerCompTest")
+            #DTOutput("plyaerCompTest")
+            htmlOutput("testText")
           ),
         ) # end of the player comparison main panel
         
