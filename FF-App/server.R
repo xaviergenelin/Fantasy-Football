@@ -172,12 +172,13 @@ shinyServer(function(input, output, session) {
   })
   
   
-  ### Player comparison
+  ############## Player comparison
   
   # create a dataset based on user input
   playerCompData <- reactive({
     player_season %>%
-      filter(player_display_name %in% input$playerCompPlayers)
+      filter(player_display_name %in% input$playerCompPlayers) %>%
+      filter(season %in% input$playerCompSeason)
   })
   
   # create a list of the players names 
@@ -345,6 +346,60 @@ shinyServer(function(input, output, session) {
         selected = input$playerCompPlayers
       )
     }
+  })
+  
+  ## player comparison graph
+  
+  output$player_list_check <- renderText({
+    player_list
+  })
+  
+  playerCompGraphData <- reactive({
+    playerCompData() %>%
+      group_by(player_display_name) %>%
+      summarise(carries = sum(carries),
+                rushing_yards = sum(rushing_yards),
+                rushing_tds = sum(rushing_tds),
+                receptions = sum(receptions),
+                targets = sum(targets),
+                receiving_yards = sum(receiving_yards),
+                receiving_air_yards = sum(receiving_air_yards),
+                receiving_yards_after_catch = sum(receiving_yards_after_catch),
+                receiving_tds = sum(receiving_tds),
+                fantasy_points = sum(fantasy_points),
+                fantasy_points_ppr = sum(fantasy_points_ppr)) %>%
+      ungroup() %>%
+      pivot_longer(cols = !player_display_name, names_to = "stat", values_to = "value") %>%
+      arrange(factor(player_display_name, levels = player_list()))
+  })
+  
+  output$player_list_display <- renderText({
+    player_list()
+  })
+  
+  output$playerDTTest <- renderDT({
+    datatable(playerCompGraphData())
+  })
+  
+  output$playerCompGraph <- renderPlot({
+    
+    ggplot(data = playerCompGraphData(), aes(fill = factor(player_display_name, player_list()), x = stat, y = value)) +
+      geom_col(position = position_fill()) +
+      scale_y_continuous(labels = scales::percent) +
+      geom_text(aes(label = value,
+                    color = factor(player_display_name)),
+                position = position_fill(vjust = 0.5)) +
+      scale_color_manual(values = c("white", "white", "black", "black")) +
+      guides(color = "none") +
+      coord_flip() +
+      theme(axis.ticks.x = element_blank(),
+            axis.text.x = element_blank(),
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank(),
+            legend.title = element_blank(),
+            panel.background = element_blank(),
+            panel.border = element_blank()) +
+      scale_fill_manual(values = alpha(c("#000080", "#800080", "#C0C0C0", "#FFFF00")))
   })
   
 })

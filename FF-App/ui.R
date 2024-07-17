@@ -297,6 +297,28 @@ shinyUI(navbarPage(
         ), # end of the player comparison sidebar panel
         
         mainPanel(
+          tags$head(tags$style(
+            HTML(
+              # first box, purple
+              '.box.box-solid.box-primary{
+              background:#000080;
+              color: white
+              }',
+              # second box, purple
+              '.box.box-solid.box-success{
+              background:#800080;
+              color: white
+              }',
+              # third box, grey
+              '.box.box-solid.box-warning{
+              background:#C0C0C0
+              }',
+              # fourth box, yellow
+              '.box.box-solid.box-danger{
+              background:#FFFF00
+              }'
+            )
+          )),
           fluidRow(
             div(
               # First player box
@@ -304,6 +326,7 @@ shinyUI(navbarPage(
               box(
                 id = "box1",
                 width = 3,
+                status = "primary",
                 solidHeader = TRUE,
                 fluidRow(align = "center", 
                          htmlOutput("player1_name")),
@@ -321,6 +344,8 @@ shinyUI(navbarPage(
               box(
                 id = "box2",
                 width = 3,
+                status = "success",
+                solidHeader = TRUE,
                 fluidRow(align = "center", 
                          htmlOutput("player2_name")),
                 fluidRow(align = "center", 
@@ -337,6 +362,8 @@ shinyUI(navbarPage(
               box(
                 id = "box3",
                 width = 3,
+                status = "warning",
+                solidHeader = TRUE,
                 fluidRow(align = "center", 
                          htmlOutput("player3_name")),
                 fluidRow(align = "center", 
@@ -353,6 +380,8 @@ shinyUI(navbarPage(
               box(
                 id = "box4",
                 width = 3,
+                status = "danger",
+                solidHeader = TRUE,
                 fluidRow(align = "center", 
                          htmlOutput("player4_name")),
                 fluidRow(align = "center", 
@@ -363,9 +392,9 @@ shinyUI(navbarPage(
                          "Test4")
               )
             ),
+            #DTOutput("playerDTTest")
+            plotOutput("playerCompGraph")
             
-            #DTOutput("plyaerCompTest")
-            htmlOutput("testText")
           ),
         ) # end of the player comparison main panel
         
