@@ -293,6 +293,21 @@ shinyUI(navbarPage(
             selected = unique(team_season$season),
             multiple = TRUE,
             options = pickerOptions(actionsBox = TRUE)
+          ),
+          
+          radioButtons(
+            inputId = "playerCompPlot",
+            label = "Chart",
+            choices = c("Overview", "Weekly"),
+            selected = "Overview",
+            inline = TRUE
+          ),
+          
+          selectInput(
+            inputId = "playerCompStat",
+            label = "Select a Stat",
+            choices = c("Something", "Another Thing"),
+            selected = 1
           )
         ), # end of the player comparison sidebar panel
         
@@ -392,9 +407,13 @@ shinyUI(navbarPage(
                          "Test4")
               )
             ),
-            #DTOutput("playerDTTest")
-            plotOutput("playerCompGraph")
+            # Overall stacked bar chart
+            conditionalPanel(
+              condition = "input.playerCompPlot == 'Overview'",
+              plotOutput("playerCompBarGraph")
+            )
             
+            #plotOutput("playerCompLineGraph")
           ),
         ) # end of the player comparison main panel
         
