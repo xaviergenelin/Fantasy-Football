@@ -7,6 +7,8 @@ library(DT)
 library(shinyWidgets)
 library(shinydashboard)
 library(shinyjs)
+library(ggh4x)
+library(magick)
 
 # load data to use throughout the app
 player_season <- read.fst("../data/player_season.fst")
@@ -132,8 +134,18 @@ shinyServer(function(input, output, session) {
       t()
   })
   
-  output$teamHeading <- renderText({
-    unique(teamProfileData()$team_name)
+  output$teamHeading <- renderUI({
+    team_wordmarks <- teams_colors_logos %>%
+      filter(team_abbr != "LA")
+    
+    wordmark <- teamProfileData() %>%
+      select(team_name) %>%
+      left_join(team_wordmarks, by = c("team_name" = "team_name")) %>%
+      select(team_wordmark) %>%
+      pull()
+    
+    tags$img(src = wordmark)
+
   })
   
   output$teamProfOff <- renderDT({
@@ -156,7 +168,7 @@ shinyServer(function(input, output, session) {
     rownames = FALSE)
   })
   
-  ### Player Data Table
+  ############## Player Data Table
 
   playerDataChoice <- reactive({
     if(input$playerTableType == "Season"){
@@ -390,20 +402,23 @@ shinyServer(function(input, output, session) {
             legend.title = element_blank(),
             panel.background = element_blank(),
             panel.border = element_blank()) +
-      scale_fill_manual(values = alpha(c("#000080", "#800080", "#C0C0C0", "#FFFF00")))
+      scale_fill_manual(values = alpha(c("#000080", "#800080", "#C0C0C0", "#FFD700")))
 
   })
   
   # line graph data
   playerCompLineData <- reactive({
     playerCompData() %>%
-      mutate(season_week = paste0(season, "-", week))
+      mutate(player_display_name = factor(player_display_name, levels = player_list()))
   })
   
   output$playerCompLineGraph <- renderPlot({
-    ggplot(data = playerCompLineData(), aes(x = interaction(season, week), y = targets, group = player_display_name, color = player_display_name)) +
-      geom_line() +
-      theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1))
+    ggplot(data = playerCompLineData(), aes(x = interaction(week, season, sep = "-"), y = targets, group = player_display_name, color = player_display_name)) +
+      geom_line(size = 1) +
+      scale_x_discrete(guide = guide_axis_nested(delim = "-")) +
+      theme_bw() +
+      scale_color_manual(values = c("#000080", "#800080", "#C0C0C0", "#FFD700"))
+      
   })
   
 })

@@ -7,6 +7,8 @@ library(DT)
 library(shinyWidgets)
 library(shinydashboard)
 library(shinyjs)
+library(ggh4x)
+library(magick)
 
 # load data to use throughout the app
 player_season <- read.fst("../data/player_season.fst")
@@ -153,7 +155,7 @@ shinyUI(navbarPage(
         ),
         
         mainPanel(
-          fluidRow(h2(textOutput("teamHeading")), align = "center"),
+          fluidRow(uiOutput("teamHeading"), align = "center"),
           fluidRow(
             column(
               # Offensive Profile
@@ -330,7 +332,7 @@ shinyUI(navbarPage(
               }',
               # fourth box, yellow
               '.box.box-solid.box-danger{
-              background:#FFFF00
+              background:#FFD700
               }'
             )
           )),
@@ -411,9 +413,12 @@ shinyUI(navbarPage(
             conditionalPanel(
               condition = "input.playerCompPlot == 'Overview'",
               plotOutput("playerCompBarGraph")
+            ),
+            conditionalPanel(
+              condition = "input.playerCompPlot == 'Weekly'",
+              plotOutput("playerCompLineGraph")
             )
             
-            #plotOutput("playerCompLineGraph")
           ),
         ) # end of the player comparison main panel
         
