@@ -31,7 +31,8 @@ shinyUI(navbarPage(
                  title = "Overall", 
                  
                  h2("Overall"),
-                 "This app will be used to easily examine fantasy football data. There will be various options for a person to use to explore NFL data."),
+                 "This app will be used to easily examine fantasy football data. There will be various options for a person to use to explore NFL data.",
+                 "Currently it is just a data visualization tool to explore team and player data. In the future, it will include fantasy point projections"),
                
                tabPanel(
                  # Team Data information
@@ -129,7 +130,7 @@ shinyUI(navbarPage(
         ), # end of the Team Data sidebar panel
         
         mainPanel(
-          DTOutput("teamDTTest")
+          DTOutput("teamDT")
         ) # end of the Team Data main panel
       ),
       
@@ -180,16 +181,35 @@ shinyUI(navbarPage(
         title = "Team Comparison",
         
         sidebarPanel(
-          selectizeInput(
+          multiInput(
             inputId = "teamCompTeams",
             label = "Select Teams",
             choices = unique(team_season$team_name),
-            multiple = TRUE
+            options = list(max = 2)
+          ),
+          
+          pickerInput(
+            inputId = "teamCompSeasons",
+            label = "Select season(s)",
+            choices = sort(unique(team_season$season), decreasing = TRUE),
+            selected = unique(team_season$season),
+            multiple = TRUE,
+            options = pickerOptions(actionsBox = TRUE)
           )
         ),
         
         mainPanel(
-          
+          fluidRow(
+            column(
+              width = 6,
+              uiOutput("team1_wordmark", align = "center")
+            ),
+            column(
+              width = 6,
+              uiOutput("team2_wordmark", align = "center")
+            )
+          ),
+          plotOutput("teamCompBarGraph")
         )
       )
       
@@ -308,7 +328,8 @@ shinyUI(navbarPage(
           selectInput(
             inputId = "playerCompStat",
             label = "Select a Stat",
-            choices = c("Something", "Another Thing"),
+            choices = c("Targets" = "targets", "Receptions" = "receptions"),
+            
             selected = 1
           )
         ), # end of the player comparison sidebar panel
@@ -350,9 +371,9 @@ shinyUI(navbarPage(
                 fluidRow(align = "center", 
                          htmlOutput("player1_pic")),
                 fluidRow(align = "center", 
-                         "Value1"),
+                         textOutput("player1_avg")),
                 fluidRow(align = "center", 
-                         "Test1")
+                         textOutput("player1_med"))
               )
             ),
             div(
@@ -368,9 +389,9 @@ shinyUI(navbarPage(
                 fluidRow(align = "center", 
                          htmlOutput("player2_pic")),
                 fluidRow(align = "center", 
-                         "Value2"),
+                         textOutput("player2_avg")),
                 fluidRow(align = "center", 
-                         "Test2")
+                         textOutput("player2_med"))
               )
             ),
             div(
@@ -386,9 +407,9 @@ shinyUI(navbarPage(
                 fluidRow(align = "center", 
                          htmlOutput("player3_pic")),
                 fluidRow(align = "center", 
-                         "Value3"),
+                         textOutput("player3_avg")),
                 fluidRow(align = "center", 
-                         "Test3")
+                         textOutput("player3_med"))
               )
             ),
             div(
@@ -404,9 +425,9 @@ shinyUI(navbarPage(
                 fluidRow(align = "center", 
                          htmlOutput("player4_pic")),
                 fluidRow(align = "center", 
-                         "Value4"),
+                         textOutput("player4_avg")),
                 fluidRow(align = "center", 
-                         "Test4")
+                         textOutput("player4_med"))
               )
             ),
             # Overall stacked bar chart
