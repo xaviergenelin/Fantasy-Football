@@ -9,6 +9,7 @@ library(shinydashboard)
 library(shinyjs)
 library(ggh4x)
 library(magick)
+library(gt)
 
 # load data to use throughout the app
 player_season <- read.fst("../data/player_season.fst")
@@ -28,6 +29,9 @@ downs_cols <- c("ints", "yard_per_car")
 # team wordmarks, remove the LA rams with the abbreviation of LA (same as the LAR abbrevation)
 team_wordmarks <- teams_colors_logos %>%
   filter(team_abbr != "LA")
+
+# load player information
+players <- load_players()
 
 # Define server logic required to analyze NFL data
 shinyServer(function(input, output, session) {
@@ -276,10 +280,18 @@ shinyServer(function(input, output, session) {
     tags$img(src = wordmark1, style = "max-width: 75%; heigh: auto;")
   })
   
-  team1_color <- reactive({
+  team1_color_main <- reactive({
     team_wordmarks %>%
       filter(team_name == team_list()[1]) %>%
       select(team_color) %>%
+      pull()
+  })
+  
+  team1_color_text <- reactive({
+    team_wordmarks %>%
+      filter(team_name == team_list()[1]) %>%
+      mutate(selected_color = ifelse(team_color == team1_color_main(), team_color2, team_color)) %>%
+      select(selected_color) %>%
       pull()
   })
 
@@ -296,10 +308,18 @@ shinyServer(function(input, output, session) {
     tags$img(src = wordmark2, style = "max-width: 75%; heigh: auto;")
   })
   
-  team2_color <- reactive({
+  team2_color_main <- reactive({
     team_wordmarks %>%
       filter(team_name == team_list()[2]) %>%
-      mutate(selected_color = ifelse(team_color == team1_color(), team_color2, team_color)) %>%
+      mutate(selected_color = ifelse(team_color == team1_color_main(), team_color2, team_color)) %>%
+      select(selected_color) %>%
+      pull()
+  })
+  
+  team2_color_text <- reactive({
+    team_wordmarks %>%
+      filter(team_name == team_list()[2]) %>%
+      mutate(selected_color = ifelse(team_color == team2_color_main(), team_color2, team_color)) %>%
       select(selected_color) %>%
       pull()
   })
@@ -310,12 +330,13 @@ shinyServer(function(input, output, session) {
     ggplot(data = teamCompBarData(), aes(x = stat, y = value, fill = team_name)) +
       geom_col(position = position_fill(reverse = TRUE)) +
       scale_y_continuous(labels = scales::percent) +
-      # geom_text(aes(label = value,
-      #               color = team_name),
-      #           position = position_fill(vjust = 0.5, reverse = TRUE)) +
+      geom_text(aes(label = value,
+                    color = team_name),
+                position = position_fill(vjust = 0.5, reverse = TRUE)) +
+      scale_color_manual(values = c(team1_color_text(), team2_color_text())) +
       guides(color = "none") +
       coord_flip() +
-      scale_fill_manual(values = alpha(c(team1_color(), team2_color())))
+      scale_fill_manual(values = alpha(c(team1_color_main(), team2_color_main())))
   })
   
   ############## Player Data Table
@@ -333,6 +354,38 @@ shinyServer(function(input, output, session) {
     datatable(playerDataChoice(), options = list(scrollX = TRUE))
   })
   
+  ############## Player Profile
+  
+  playerProfileDataSea <- reactive({
+    player_season %>%
+      filter(player_display_name == input$playerProfPlayers)
+  })
+  
+  playerInfo <- reactive({
+    playerProfileDataSea() %>%
+      left_join(players, by = c("player_display_name" = "display_name"), suffix = c("", ".drop")) %>%
+      select(-ends_with(".drop")) %>%
+      arrange(season) %>%
+      slice_tail(n = 1) %>%
+      select(player_display_name, headshot_url, position, team_abbr, uniform_number, years_of_experience) %>%
+      gt() %>%
+      cols_label(player_display_name = "Name",
+                 headshot_url = "",
+                 position = "Pos",
+                 team_abbr = "Team",
+                 uniform_number = "Num",
+                 years_of_experience = "Exp") %>%
+      text_transform(
+        locations = cells_body(columns = c(headshot_url)),
+        fn = function(x){
+          gt::web_image(x)
+        }
+      )
+  })
+  
+  output$playerTest <- render_gt({
+    expr = playerInfo()
+  })
   
   ############## Player comparison
   

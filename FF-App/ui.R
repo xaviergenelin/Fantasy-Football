@@ -9,6 +9,7 @@ library(shinydashboard)
 library(shinyjs)
 library(ggh4x)
 library(magick)
+library(gt)
 
 # load data to use throughout the app
 player_season <- read.fst("../data/player_season.fst")
@@ -292,7 +293,7 @@ shinyUI(navbarPage(
         ), # end of the player profile sidebar panel
         
         mainPanel(
-          
+          gt_output("playerTest")
         ) # end of the player profile main panel
       ),
       
