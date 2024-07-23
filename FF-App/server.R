@@ -308,6 +308,8 @@ shinyServer(function(input, output, session) {
     tags$img(src = wordmark2, style = "max-width: 75%; heigh: auto;")
   })
   
+  # get the main color to be used in the stacked bar chart
+  # looks to see if the main color matches the first team's main color, if it is then the secondary color is ued to fill the bar
   team2_color_main <- reactive({
     team_wordmarks %>%
       filter(team_name == team_list()[2]) %>%
@@ -316,6 +318,7 @@ shinyServer(function(input, output, session) {
       pull()
   })
   
+  # get the color for the data values in the bars
   team2_color_text <- reactive({
     team_wordmarks %>%
       filter(team_name == team_list()[2]) %>%
@@ -325,17 +328,21 @@ shinyServer(function(input, output, session) {
   })
   
   # Stacked Bar Chart
-  
   output$teamCompBarGraph <- renderPlot({
+    # require a team to be selected in order to show the plot
+    req(input$teamCompTeams)
+    
     ggplot(data = teamCompBarData(), aes(x = stat, y = value, fill = team_name)) +
       geom_col(position = position_fill(reverse = TRUE)) +
       scale_y_continuous(labels = scales::percent) +
       geom_text(aes(label = value,
                     color = team_name),
                 position = position_fill(vjust = 0.5, reverse = TRUE)) +
+      # text colors
       scale_color_manual(values = c(team1_color_text(), team2_color_text())) +
       guides(color = "none") +
       coord_flip() +
+      # bar colors
       scale_fill_manual(values = alpha(c(team1_color_main(), team2_color_main())))
   })
   
@@ -356,25 +363,40 @@ shinyServer(function(input, output, session) {
   
   ############## Player Profile
   
-  playerProfileDataSea <- reactive({
+  # season data for the player profile
+  playerProfileSea <- reactive({
     player_season %>%
-      filter(player_display_name == input$playerProfPlayers)
+      filter(season %in% input$playerProfSeason) %>%
+      group_by(player_id, player_display_name, position, headshot_url) %>%
+      summarise(fantasy_points = mean(fantasy_points),
+                fantasy_points_ppr = mean(fantasy_points_ppr)) %>%
+      ungroup() %>%
+      group_by(position) %>%
+      mutate(position_rank_fp = min_rank(desc(fantasy_points)),
+             position_rank_ppr = min_rank(desc(fantasy_points_ppr))) %>%
+      ungroup() %>%
+      left_join(players, by = c("player_id" = "gsis_id"), suffix = c("", ".drop")) %>%
+      select(-ends_with(".drop")) %>%
+      filter(player_display_name == input$playerProfPlayer)
   })
   
-  playerInfo <- reactive({
-    playerProfileDataSea() %>%
-      left_join(players, by = c("player_display_name" = "display_name"), suffix = c("", ".drop")) %>%
-      select(-ends_with(".drop")) %>%
-      arrange(season) %>%
-      slice_tail(n = 1) %>%
-      select(player_display_name, headshot_url, position, team_abbr, uniform_number, years_of_experience) %>%
+  # data for the top gt table as the heading based on the chosen player
+  playerProfileHead <- reactive({
+    playerProfileSea() %>%
+      select(player_display_name, headshot_url, position, team_abbr, uniform_number, years_of_experience, 
+             fantasy_points, position_rank_fp, fantasy_points_ppr, position_rank_ppr) %>%
       gt() %>%
       cols_label(player_display_name = "Name",
                  headshot_url = "",
                  position = "Pos",
                  team_abbr = "Team",
                  uniform_number = "Num",
-                 years_of_experience = "Exp") %>%
+                 years_of_experience = "Exp",
+                 fantasy_points = "AVG Fantasy Points",
+                 position_rank_fp = "Position Rank",
+                 fantasy_points_ppr = "AVG Fantasy Points PPR",
+                 position_rank_ppr = "Position Rank PPR") %>%
+      # changes the headshot url to the image
       text_transform(
         locations = cells_body(columns = c(headshot_url)),
         fn = function(x){
@@ -383,8 +405,33 @@ shinyServer(function(input, output, session) {
       )
   })
   
-  output$playerTest <- render_gt({
-    expr = playerInfo()
+  # player profile heading gt output
+  output$playerProfileHeading <- render_gt({
+    expr = playerProfileHead()
+  })
+  
+  # weekly data for the player profile
+  playerProfileWk <- reactive({
+    player_weekly %>%
+      filter(player_display_name == input$playerProfPlayer) %>%
+      filter(season %in% input$playerProfSeason)
+  })
+
+  
+  # player profile line graph
+  
+  output$playerProfWkGraph <- renderPlot({
+    meanData <- playerProfileWk() %>%
+      group_by(player_display_name) %>%
+      summarise(mean_val = mean(fantasy_points))
+    
+    ggplot(data = playerProfileWk(), aes(x = interaction(week, season, sep = "-"),
+                                         y = fantasy_points,
+                                         group = 1)) +
+      geom_line(size = 1) +
+      scale_x_discrete(guide = guide_axis_nested(delim = "-")) +
+      geom_hline(data = meanData, aes(yintercept = mean_val)) +
+      theme_bw()
   })
   
   ############## Player comparison
@@ -671,7 +718,6 @@ shinyServer(function(input, output, session) {
       scale_x_discrete(guide = guide_axis_nested(delim = "-")) +
       theme_bw() +
       scale_color_manual(values = c("#000080", "#800080", "#C0C0C0", "#FFD700"))
-      
   })
   
 })

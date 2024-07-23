@@ -275,13 +275,14 @@ shinyUI(navbarPage(
         title = "Player Profile",
         
         sidebarPanel(
-          multiInput(
-            inputId = "playerProfPlayers",
-            label = "Select player(s)",
+          pickerInput(
+            inputId = "playerProfPlayer",
+            label = "Select Player",
             choices = str_sort(unique(player_season$player_display_name)),
-            selected = NULL
+            selected = NULL,
+            multiple = FALSE,
+            options = pickerOptions(liveSearch = TRUE)
           ),
-          
           pickerInput(
             inputId = "playerProfSeason",
             label = "Select season(s)",
@@ -293,7 +294,8 @@ shinyUI(navbarPage(
         ), # end of the player profile sidebar panel
         
         mainPanel(
-          gt_output("playerTest")
+          fluidRow(gt_output("playerProfileHeading")),
+          fluidRow(plotOutput("playerProfWkGraph"))
         ) # end of the player profile main panel
       ),
       
