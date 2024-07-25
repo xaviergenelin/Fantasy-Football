@@ -261,7 +261,7 @@ shinyUI(navbarPage(
           multiInput(
             inputId = "playerTablePlayer",
             label = "Select player(s)",
-            choices = str_sort(unique(player_season$player_display_name)),
+            choices = str_sort(unique(player_season$Player)),
             selected = NULL
           )
           
@@ -278,7 +278,7 @@ shinyUI(navbarPage(
           pickerInput(
             inputId = "playerProfPlayer",
             label = "Select Player",
-            choices = str_sort(unique(player_season$player_display_name)),
+            choices = str_sort(unique(player_season$Player)),
             selected = NULL,
             multiple = FALSE,
             options = pickerOptions(liveSearch = TRUE)
@@ -290,6 +290,11 @@ shinyUI(navbarPage(
             selected = unique(team_season$season),
             multiple = TRUE,
             options = pickerOptions(actionsBox = TRUE)
+          ),
+          selectInput(
+            inputId = "playerProfVariable",
+            label = "Select Variable",
+            choices = c("Fantasy Points", "Fantasy Points PPR")
           )
         ), # end of the player profile sidebar panel
         
@@ -306,7 +311,7 @@ shinyUI(navbarPage(
           multiInput(
             inputId = "playerCompPlayers",
             label = "Select up to 4 players",
-            choices = str_sort(unique(player_season$player_display_name)),
+            choices = str_sort(unique(player_season$Player)),
             selected = NULL,
             options = list(max = 4)
           ),
@@ -323,15 +328,15 @@ shinyUI(navbarPage(
           radioButtons(
             inputId = "playerCompPlot",
             label = "Chart",
-            choices = c("Overview", "Weekly"),
-            selected = "Overview",
+            choices = c("Totals", "Weekly"),
+            selected = "Totals",
             inline = TRUE
           ),
           
           selectInput(
             inputId = "playerCompStat",
             label = "Select a Stat",
-            choices = c("Targets" = "targets", "Receptions" = "receptions"),
+            choices = c("Targets", "Receptions"),
             
             selected = 1
           )
@@ -435,7 +440,7 @@ shinyUI(navbarPage(
             ),
             # Overall stacked bar chart
             conditionalPanel(
-              condition = "input.playerCompPlot == 'Overview'",
+              condition = "input.playerCompPlot == 'Totals'",
               plotOutput("playerCompBarGraph")
             ),
             conditionalPanel(

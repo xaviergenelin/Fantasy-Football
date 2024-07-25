@@ -18,13 +18,13 @@ team_weekly <- read.fst("../data/team_weekly.fst")
 team_season <- read.fst("../data/team_season.fst")
 
 # list of columns for each team option
-overall_cols <- c("passing_yards", "pass_td", "ints", "completions", "pass_attempts", "completion_pct", 
-                      "carries", "rush_yards", "rush_td", "yard_per_car")
-not_overall_cols <- c("yac", "pass_20plus", "pass_40plus", "rush_longest", "rush_20plus", "rush_40plus", "rush_stacked_box")
-pass_cols <- c("passing_yards", "pass_td", "ints", "completions", "pass_attempts", "completion_pct", "yac", "pass_20plus", "pass_40plus")
-rush_cols <- c("carries", "rush_yards", "rush_td", "yard_per_car", "rush_longest", "rush_20plus", "rush_40plus", "rush_stacked_box")
-scoring_cols <- c("pass_td", "rush_td")
-downs_cols <- c("ints", "yard_per_car")
+overall_cols <- c("Passing Yds", "Pass TDs", "Ints", "Completions", "Pass Attempts", "Completion%", 
+                      "Carries", "Rush Yds", "Rush TDs", "Yds/Carr")
+not_overall_cols <- c("YAC", "Pass 20+", "Pass 40+", "Rush Longest", "Rush 20+", "Rush 40+", "Rush Stacked Box")
+pass_cols <- c("Passing Yds", "Pass TDs", "Ints", "Completions", "Pass Attempts", "Completion%", "YAC", "Pass 20+", "Pass 40+")
+rush_cols <- c("Carries", "Rush Yds", "Rush TDs", "Yds/Carr", "Rush Longest", "rush_20plus", "rush_40plus", "rush_stacked_box")
+scoring_cols <- c("Pass TDs", "Rush TDs")
+downs_cols <- c("Ints", "Yds/Carr")
 
 # team wordmarks, remove the LA rams with the abbreviation of LA (same as the LAR abbrevation)
 team_wordmarks <- teams_colors_logos %>%
@@ -63,11 +63,11 @@ shinyServer(function(input, output, session) {
     # choose offense or defense columns based on user input
     if(input$teamDataGroup == "Offense"){
       teamDTFilter() %>%
-        select(-ends_with("_def"))%>%
+        select(-ends_with("_def")) %>%
         rename_with(~str_remove(., "_off"))
     } else {
       teamDTFilter() %>%
-        select(-ends_with("_off"))%>%
+        select(-ends_with("_off")) %>%
         rename_with(~str_remove(., "_def"))
     }
   })
@@ -103,31 +103,30 @@ shinyServer(function(input, output, session) {
   
   teamProfileData <- reactive({
     team_season %>%
-      #filter(team_name == input$teamProfTeam) %>%
       filter(season %in% input$teamProfSeasons) %>%
       group_by(team_name) %>%
-      summarise(carries_off = sum(carries_off),
-                rush_yards_off = sum(rush_yards_off),
-                rush_td_off = sum(rush_td_off),
-                rush_fumble_off = sum(rush_fumble_off),
-                passing_yards_off = sum(passing_yards_off),
-                pass_td_off = sum(pass_td_def),
-                ints_off = sum(ints_off),
-                yac_off = sum(ints_off),
-                sacks_off = sum(sacks_off),
-                completions_off = sum(completions_off),
-                pass_attempts_off = sum(pass_attempts_off),
-                carries_def = sum(carries_def),
-                rush_yards_def = sum(rush_yards_def),
-                rush_td_def = sum(rush_td_def),
-                rush_fumble_def = sum(rush_fumble_def),
-                passing_yards_def = sum(passing_yards_def),
-                pass_td_def = sum(pass_td_def),
-                ints_def = sum(ints_def),
-                yac_def = sum(ints_def),
-                sacks_def = sum(sacks_def),
-                completions_def = sum(completions_def),
-                pass_attempts_def = sum(pass_attempts_def))
+      summarise(Carries_off = sum(Carries_off),
+                `Rush Yds_off` = sum(`Rush Yds_off`),
+                `Rush TDs_off` = sum(`Rush TDs_off`),
+                `Rush Fum_off` = sum(`Rush Fum_off`),
+                `Passing Yds_off` = sum(`Passing Yds_off`),
+                `Pass_TDs_off` = sum(`Pass TDs_off`),
+                Ints_off = sum(Ints_off),
+                YAC_off = sum(YAC_off),
+                Sacks_off = sum(Sacks_off),
+                Completions_off = sum(Completions_off),
+                `Pass Attempts_off` = sum(`Pass Attempts_off`),
+                Carries_def = sum(Carries_def),
+                `Rush Yds_def` = sum(`Rush Yds_def`),
+                `Rush TDs_def` = sum(`Rush TDs_def`),
+                `Rush Fum_def` = sum(`Rush Fum_def`),
+                `Passing Yds_def` = sum(`Passing Yds_def`),
+                `Pass TDs_def` = sum(`Pass TDs_def`),
+                Ints_def = sum(Ints_def),
+                YAC_def = sum(YAC_def),
+                Sacks_def = sum(Sacks_def),
+                Completions_def = sum(Completions_def),
+                `Pass Attempts_def` = sum(`Pass Attempts_def`))
   })
   
   teamProfileRanks <- reactive({
@@ -142,6 +141,7 @@ shinyServer(function(input, output, session) {
     totals <- teamProfileData() %>%
       filter(team_name == input$teamProfTeam) %>%
       select(ends_with("_off")) %>%
+      rename_with(~str_remove(., "_off")) %>%
       t() %>%
       as.data.frame() %>%
       rename("Value" = "V1")
@@ -256,8 +256,8 @@ shinyServer(function(input, output, session) {
     teamCompData() %>%
       mutate(team_name = factor(team_name, levels = team_list())) %>%
       group_by(team_name) %>%
-      summarise(carries_off = sum(carries_off),
-                rush_td_off = sum(rush_td_off)) %>%
+      summarise(Carries_off = sum(Carries_off),
+                `Rush TDs_off` = sum(`Rush TDs_off`)) %>%
       ungroup() %>%
       pivot_longer(cols = !team_name, names_to = "stat", values_to = "value")
   })
@@ -340,7 +340,7 @@ shinyServer(function(input, output, session) {
                 position = position_fill(vjust = 0.5, reverse = TRUE)) +
       # text colors
       scale_color_manual(values = c(team1_color_text(), team2_color_text())) +
-      guides(color = "none") +
+      guides(color = "none", fill = guide_legend(title = "Team")) +
       coord_flip() +
       # bar colors
       scale_fill_manual(values = alpha(c(team1_color_main(), team2_color_main())))
@@ -367,26 +367,27 @@ shinyServer(function(input, output, session) {
   playerProfileSea <- reactive({
     player_season %>%
       filter(season %in% input$playerProfSeason) %>%
-      group_by(player_id, player_display_name, position, headshot_url) %>%
-      summarise(fantasy_points = mean(fantasy_points),
-                fantasy_points_ppr = mean(fantasy_points_ppr)) %>%
+      group_by(player_id, Player, position, headshot_url) %>%
+      summarise(`Fantasy Points` = mean(`Fantasy Points`),
+                `Fantasy Points PPR` = mean(`Fantasy Points PPR`)) %>%
       ungroup() %>%
       group_by(position) %>%
-      mutate(position_rank_fp = min_rank(desc(fantasy_points)),
-             position_rank_ppr = min_rank(desc(fantasy_points_ppr))) %>%
+      mutate(position_rank_fp = min_rank(desc(`Fantasy Points`)),
+             position_rank_ppr = min_rank(desc(`Fantasy Points PPR`))) %>%
       ungroup() %>%
       left_join(players, by = c("player_id" = "gsis_id"), suffix = c("", ".drop")) %>%
       select(-ends_with(".drop")) %>%
-      filter(player_display_name == input$playerProfPlayer)
+      filter(Player == input$playerProfPlayer)
   })
   
   # data for the top gt table as the heading based on the chosen player
   playerProfileHead <- reactive({
     playerProfileSea() %>%
-      select(player_display_name, headshot_url, position, team_abbr, uniform_number, years_of_experience, 
-             fantasy_points, position_rank_fp, fantasy_points_ppr, position_rank_ppr) %>%
+      select(Player, headshot_url, position, team_abbr, uniform_number, years_of_experience, 
+             `Fantasy Points`, position_rank_fp, `Fantasy Points PPR`, position_rank_ppr) %>%
+      rename(fantasy_points = `Fantasy Points`) %>%
       gt() %>%
-      cols_label(player_display_name = "Name",
+      cols_label(Player = "Name",
                  headshot_url = "",
                  position = "Pos",
                  team_abbr = "Team",
@@ -394,7 +395,7 @@ shinyServer(function(input, output, session) {
                  years_of_experience = "Exp",
                  fantasy_points = "AVG Fantasy Points",
                  position_rank_fp = "Position Rank",
-                 fantasy_points_ppr = "AVG Fantasy Points PPR",
+                 "Fantasy Points PPR" = "AVG Fantasy Points PPR",
                  position_rank_ppr = "Position Rank PPR") %>%
       # changes the headshot url to the image
       text_transform(
@@ -413,7 +414,7 @@ shinyServer(function(input, output, session) {
   # weekly data for the player profile
   playerProfileWk <- reactive({
     player_weekly %>%
-      filter(player_display_name == input$playerProfPlayer) %>%
+      filter(Player == input$playerProfPlayer) %>%
       filter(season %in% input$playerProfSeason)
   })
 
@@ -421,16 +422,11 @@ shinyServer(function(input, output, session) {
   # player profile line graph
   
   output$playerProfWkGraph <- renderPlot({
-    meanData <- playerProfileWk() %>%
-      group_by(player_display_name) %>%
-      summarise(mean_val = mean(fantasy_points))
-    
     ggplot(data = playerProfileWk(), aes(x = interaction(week, season, sep = "-"),
-                                         y = fantasy_points,
                                          group = 1)) +
-      geom_line(size = 1) +
+      geom_line(aes_string(y = as.name(input$playerProfVariable)), size = 1) +
       scale_x_discrete(guide = guide_axis_nested(delim = "-")) +
-      geom_hline(data = meanData, aes(yintercept = mean_val)) +
+      geom_hline(yintercept = mean(playerProfileWk()[[input$playerProfVariable]]), linetype = "dashed") +
       theme_bw()
   })
   
@@ -464,7 +460,7 @@ shinyServer(function(input, output, session) {
       updateMultiInput(
         session = session,
         inputId = "playerCompPlayers",
-        choices = str_sort(unique(player_season$player_display_name)),
+        choices = str_sort(unique(player_season$Player)),
         selected = input$playerCompPlayers
       )
     }
@@ -473,13 +469,13 @@ shinyServer(function(input, output, session) {
   # create a dataset based on user input
   playerCompData <- reactive({
     player_weekly %>%
-      filter(player_display_name %in% input$playerCompPlayers) %>%
+      filter(Player %in% input$playerCompPlayers) %>%
       filter(season %in% input$playerCompSeason)
   })
   
   # create a list of the players names 
   player_list <- reactive({
-    c(unique(playerCompData()$player_display_name))
+    c(unique(playerCompData()$Player))
   })
   
   
@@ -532,7 +528,7 @@ shinyServer(function(input, output, session) {
   # player data
   player1_data <- reactive({
     playerCompData() %>%
-      filter(player_display_name == player_list()[1])
+      filter(Player == player_list()[1])
   })
   
   # player picture
@@ -543,17 +539,16 @@ shinyServer(function(input, output, session) {
   output$player1_pic <- renderText({
     c("<img src='", substring(p1_headshot()[1], 1), "', height = '90%', width = '90%'>")
   })
+  
+  # player's average value for selected variable
+  output$player1_avg <- renderText({
+    round(mean(player1_data()[[input$playerCompStat]]), 1)
+  })
 
   # player's median value for selected variable
   output$player1_med <- renderText({
     median(player1_data()[[input$playerCompStat]])
   })
-  
-  # player's average value for selected variable
-  output$player1_avg <- renderText({
-    mean(player1_data()[[input$playerCompStat]])
-  })
-
   
   ###########################
   ########## Box 2 ##########
@@ -567,7 +562,7 @@ shinyServer(function(input, output, session) {
   # player data
   player2_data <- reactive({
     playerCompData() %>%
-      filter(player_display_name == player_list()[2])
+      filter(Player == player_list()[2])
   })
   
   # player picture
@@ -579,14 +574,14 @@ shinyServer(function(input, output, session) {
     c("<img src='", substring(p2_headshot()[1], 1), "', height = '90%', width = '90%'>")
   })
   
+  # player's average value for selected variable
+  output$player2_avg <- renderText({
+    round(mean(player2_data()[[input$playerCompStat]]), 1)
+  })
+  
   # player's median value for selected variable
   output$player2_med <- renderText({
     median(player2_data()[[input$playerCompStat]])
-  })
-  
-  # player's average value for selected variable
-  output$player2_avg <- renderText({
-    mean(player2_data()[[input$playerCompStat]])
   })
   
   ###########################
@@ -601,7 +596,7 @@ shinyServer(function(input, output, session) {
   # player data
   player3_data <- reactive({
     playerCompData() %>%
-      filter(player_display_name == player_list()[3])
+      filter(Player == player_list()[3])
   })
   
   # player picture
@@ -613,14 +608,14 @@ shinyServer(function(input, output, session) {
     c("<img src='", substring(p3_headshot()[1], 1), "', height = '90%', width = '90%'>")
   })
   
+  # player's average value for selected variable
+  output$player3_avg <- renderText({
+    round(mean(player3_data()[[input$playerCompStat]]), 1)
+  })
+  
   # player's median value for selected variable
   output$player3_med <- renderText({
     median(player3_data()[[input$playerCompStat]])
-  })
-  
-  # player's average value for selected variable
-  output$player3_avg <- renderText({
-    mean(player3_data()[[input$playerCompStat]])
   })
   
   ###########################
@@ -635,7 +630,7 @@ shinyServer(function(input, output, session) {
   # player data
   player4_data <- reactive({
     playerCompData() %>%
-      filter(player_display_name == player_list()[4])
+      filter(Player == player_list()[4])
   })
   
   # player picture
@@ -647,14 +642,14 @@ shinyServer(function(input, output, session) {
     c("<img src='", substring(p4_headshot()[1], 1), "', height = '90%', width = '90%'>")
   })
   
+  # player's average value for selected variable
+  output$player4_avg <- renderText({
+    round(mean(player4_data()[[input$playerCompStat]]), 1)
+  })
+  
   # player's median value for selected variable
   output$player4_med <- renderText({
     median(player4_data()[[input$playerCompStat]])
-  })
-  
-  # player's average value for selected variable
-  output$player4_avg <- renderText({
-    mean(player4_data()[[input$playerCompStat]])
   })
   
   ## player comparison graphs
@@ -662,32 +657,32 @@ shinyServer(function(input, output, session) {
   # stacked bar chart data
   playerCompBarData <- reactive({
     playerCompData() %>%
-      mutate(player_display_name = factor(player_display_name, levels = player_list())) %>%
-      group_by(player_display_name) %>%
-      summarise(carries = sum(carries),
-                rushing_yards = sum(rushing_yards),
-                rushing_tds = sum(rushing_tds),
-                receptions = sum(receptions),
-                targets = sum(targets),
-                receiving_yards = sum(receiving_yards),
-                receiving_air_yards = sum(receiving_air_yards),
-                receiving_yards_after_catch = sum(receiving_yards_after_catch),
-                receiving_tds = sum(receiving_tds),
-                fantasy_points = sum(fantasy_points),
-                fantasy_points_ppr = sum(fantasy_points_ppr)) %>%
+      mutate(Player = factor(Player, levels = player_list())) %>%
+      group_by(Player) %>%
+      summarise(Carries = sum(Carries),
+                `Rushing Yds` = sum(`Rushing Yds`),
+                `Rushing TDs` = sum(`Rushing TDs`),
+                Receptions = sum(Receptions),
+                Targets = sum(Targets),
+                `Receiving Yds` = sum(`Receiving Yds`),
+                `Receiving Air Yds` = sum(`Receiving Air Yds`),
+                `Receiving YAC` = sum(`Receiving YAC`),
+                `Receiving TDs` = sum(`Receiving TDs`),
+                `Fantasy Points` = sum(`Fantasy Points`),
+                `Fantasy Points PPR` = sum(`Fantasy Points PPR`)) %>%
       ungroup() %>%
-      pivot_longer(cols = !player_display_name, names_to = "stat", values_to = "value") %>%
-      arrange(factor(player_display_name, levels = player_list()))
+      pivot_longer(cols = !Player, names_to = "stat", values_to = "value") %>%
+      arrange(factor(Player, levels = player_list()))
   })
   
   # stacked bar chart
   output$playerCompBarGraph <- renderPlot({
     
-    ggplot(data = playerCompBarData(), aes(fill = player_display_name, x = stat, y = value)) +
+    ggplot(data = playerCompBarData(), aes(fill = Player, x = stat, y = value)) +
       geom_col(position = position_fill(reverse = TRUE)) +
       scale_y_continuous(labels = scales::percent) +
       geom_text(aes(label = value,
-                    color = player_display_name),
+                    color = Player),
                 position = position_fill(vjust = 0.5, reverse = TRUE)) +
       scale_color_manual(values = c("white", "white", "black", "black")) +
       guides(color = "none") +
@@ -706,15 +701,14 @@ shinyServer(function(input, output, session) {
   # line graph data
   playerCompLineData <- reactive({
     playerCompData() %>%
-      mutate(player_display_name = factor(player_display_name, levels = player_list()))
+      mutate(Player = factor(Player, levels = player_list()))
   })
   
   output$playerCompLineGraph <- renderPlot({
-    ggplot(data = playerCompLineData(), aes(x = interaction(week, season, sep = "-"), 
-                                            y = receptions, 
-                                            group = player_display_name, 
-                                            color = player_display_name)) +
-      geom_line(size = 1) +
+    ggplot(data = playerCompLineData(), aes(x = interaction(week, season, sep = "-"),
+                                            group = Player, 
+                                            color = Player)) +
+      geom_line(aes_string(y = input$playerCompStat), size = 1) +
       scale_x_discrete(guide = guide_axis_nested(delim = "-")) +
       theme_bw() +
       scale_color_manual(values = c("#000080", "#800080", "#C0C0C0", "#FFD700"))

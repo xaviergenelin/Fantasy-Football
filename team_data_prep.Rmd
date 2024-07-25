@@ -85,10 +85,10 @@ Get rushes inside the redzone, 10 yard line, 5 yard line and by position
 # get season rushing data of interest for each team and season
 rushing_off_weekly <- rushing %>%
   group_by(posteam, season, week) %>%
-  summarise(carries = sum(rush_attempt),
-            rush_yards = sum(rushing_yards),
-            rush_td = sum(rush_touchdown),
-            rush_fumble = sum(fumble),
+  summarise(Carries = sum(rush_attempt),
+            `Rush Yds` = sum(rushing_yards),
+            `Rush TDs` = sum(rush_touchdown),
+            `Rush Fum` = sum(fumble),
             # rushers_used = n_distinct(rusher_player_id),
             # qb_carries = sum(ifelse(rusher_position == "QB", 1, 0)),
             # qb_rushers = n_distinct(ifelse(rusher_position == "QB", rusher_player_id, NA)),
@@ -99,15 +99,15 @@ rushing_off_weekly <- rushing %>%
             # te_carries = sum(ifelse(rusher_position == "TE", 1, 0)),
             # te_rushers = n_distinct(ifelse(rusher_position == "TE", rusher_player_id, NA)),
             # qb_scramble = sum(qb_scramble),
-            rush_20plus = sum(ifelse(rushing_yards >= 20, 1, 0)),
-            rush_40plus = sum(ifelse(rushing_yards >= 40, 1, 0)),
-            rush_longest = max(rushing_yards),
+            `Rush 20+` = sum(ifelse(rushing_yards >= 20, 1, 0)),
+            `Rush 40+` = sum(ifelse(rushing_yards >= 40, 1, 0)),
+            `Rush Longest` = max(rushing_yards),
             ###### will need to double check the defenders in box NA values
             # could be a weird formation from a fake punt/other weird play/formation to give a different defensive personnel
-            rush_stacked_box = sum(ifelse(is.na(defenders_in_box), 0, 
+            `Rush Stacked Box` = sum(ifelse(is.na(defenders_in_box), 0, 
                                           ifelse(defenders_in_box > 7, 1, 0))),
             .groups = "drop") %>%
-  mutate(yard_per_car = round(rush_yards/carries, 1))
+  mutate(`Yds/Carry` = round(`Rush Yds`/Carries, 1))
   # mutate(yard_per_car = round(rush_yards/carries, 1),
   #        #other_carries = carries - qb_carries - rb_carries - wr_carries - te_carries,
   #        qb_designed_run = qb_carries - qb_scramble)
@@ -116,7 +116,6 @@ rushing_off_weekly
 ```
 
 ## Offensive Passing
-
 
 ```{r passing}
 # filter the play by play data to get just rushing plays
@@ -138,26 +137,26 @@ Total number of passes to each position group
 ```{r passing_off_weekly}
 passing_off_weekly <- passing %>%
   group_by(posteam, season, week) %>%
-  summarise(passing_yards = sum(ifelse(!is.na(passing_yards), passing_yards, 0)),
-            pass_td = sum(pass_touchdown),
+  summarise(`Passing Yds` = sum(passing_yards, na.rm = TRUE),
+            `Pass TDs` = sum(pass_touchdown),
             pass_attempt = sum(pass_attempt),
-            ints = sum(interception),
-            yac = sum(ifelse(!is.na(yards_after_catch), yards_after_catch, 0)),
-            sacks = sum(sack),
-            completions = sum(complete_pass),
-            pass_20plus = sum(ifelse(yards_gained >= 20, 1, 0)),
-            pass_40plus = sum(ifelse(yards_gained >= 40, 1, 0)),
-            pass_longest = max(yards_gained),
+            Ints = sum(interception),
+            YAC = sum(yards_after_catch, na.rm = TRUE),
+            Sacks = sum(sack),
+            Completions = sum(complete_pass),
+            `Pass 20+` = sum(ifelse(yards_gained >= 20, 1, 0)),
+            `Pass 40+` = sum(ifelse(yards_gained >= 40, 1, 0)),
+            `Pass Longest` = max(yards_gained),
             ###### will need to check that the NA pass rushers are valid
             # could be a trick play out of a weird formation or fake punt type of play for a weird defensive personnel
-            pass_against_blitz = sum(ifelse(is.na(number_of_pass_rushers), 0, 
+            `Pass Against Blitz` = sum(ifelse(is.na(number_of_pass_rushers), 0, 
                                             ifelse(number_of_pass_rushers > 4, 1, 0)))) %>%
-  mutate(pass_attempts = pass_attempt - sacks,
-         completion_pct = round(completions/pass_attempts, 3),
-         yds_per_att = round(passing_yards/pass_attempts, 1)) %>%
+  mutate(`Pass Attempts` = pass_attempt - Sacks,
+         `Completion%` = round(Completions/`Pass Attempts`, 3),
+         `Yds/Att` = round(`Passing Yds`/`Pass Attempts`, 1)) %>%
   select(-pass_attempt)
 
-passing_off_weekly
+passing_off_weekly 
 ```
 
 ```{r offense_merge}
@@ -176,20 +175,20 @@ This section will get a lot of the same information as above, but now for the de
 ```{r rushing_def_weekly}
 rushing_def_weekly <- rushing %>%
   group_by(defteam, season, week) %>%
-  summarise(carries = sum(rush_attempt),
-            rush_yards = sum(rushing_yards),
-            rush_td = sum(rush_touchdown),
-            rush_fumble = sum(fumble),
+  summarise(Carries = sum(rush_attempt),
+            `Rush Yds` = sum(rushing_yards),
+            `Rush TDs` = sum(rush_touchdown),
+            `Rush Fum` = sum(fumble),
             #qb_scramble = sum(qb_scramble),
-            rush_20plus = sum(ifelse(rushing_yards >= 20, 1, 0)),
-            rush_40plus = sum(ifelse(rushing_yards >= 40, 1, 0)),
-            rush_longest = max(rushing_yards),
+            `Rush 20+` = sum(ifelse(rushing_yards >= 20, 1, 0)),
+            `Rush 40+` = sum(ifelse(rushing_yards >= 40, 1, 0)),
+            `Rush Longest` = max(rushing_yards),
             ###### will need to double check the defenders in box NA values
             # could be a weird formation from a fake punt/other weird play/formation to give a different defensive personnel
-            rush_stacked_box = sum(ifelse(is.na(defenders_in_box), 0, 
+            `Rush Stacked Box` = sum(ifelse(is.na(defenders_in_box), 0, 
                                           ifelse(defenders_in_box > 7, 1, 0))),
             .groups = "drop") %>%
-  mutate(yard_per_car = round(rush_yards/carries, 1))
+  mutate(`Yds/Carry` = round(`Rush Yds`/Carries, 1))
 
 rushing_def_weekly
 ```
@@ -201,23 +200,23 @@ rushing_def_weekly
 ```{r passing_def_weekly}
 passing_def_weekly <- passing %>%
   group_by(defteam, season, week) %>%
-  summarise(passing_yards = sum(ifelse(!is.na(passing_yards), passing_yards, 0)),
-            pass_td = sum(pass_touchdown),
+  summarise(`Passing Yds` = sum(ifelse(!is.na(passing_yards), passing_yards, 0)),
+            `Pass TDs` = sum(pass_touchdown),
             pass_attempt = sum(pass_attempt),
-            ints = sum(interception),
-            yac = sum(ifelse(!is.na(yards_after_catch), yards_after_catch, 0)),
-            sacks = sum(sack),
-            completions = sum(complete_pass),
-            pass_20plus = sum(ifelse(yards_gained >= 20, 1, 0)),
-            pass_40plus = sum(ifelse(yards_gained >= 40, 1, 0)),
-            pass_longest = max(yards_gained),
+            Ints = sum(interception),
+            YAC = sum(ifelse(!is.na(yards_after_catch), yards_after_catch, 0)),
+            Sacks = sum(sack),
+            Completions = sum(complete_pass),
+            `Pass 20+` = sum(ifelse(yards_gained >= 20, 1, 0)),
+            `Pass 40+` = sum(ifelse(yards_gained >= 40, 1, 0)),
+            `Pass Longest` = max(yards_gained),
             ###### will need to check that the NA pass rushers are valid
             # could be a trick play out of a weird formation or fake punt type of play for a weird defensive personnel
-            pass_against_blitz = sum(ifelse(is.na(number_of_pass_rushers), 0, 
+            `Pass Against Blitz` = sum(ifelse(is.na(number_of_pass_rushers), 0, 
                                             ifelse(number_of_pass_rushers > 4, 1, 0)))) %>%
-  mutate(pass_attempts = pass_attempt - sacks,
-         completion_pct = round(completions/pass_attempts, 3),
-         yds_per_att = round(passing_yards/pass_attempts, 1)) %>%
+  mutate(`Pass Attempts` = pass_attempt - Sacks,
+         `Completion%` = round(Completions/`Pass Attempts`, 3),
+         `Yds/Att` = round(`Passing Yds`/`Pass Attempts`, 1)) %>%
   select(-pass_attempt)
 
 passing_def_weekly
@@ -272,12 +271,12 @@ team_season <- team_weekly %>%
   summarise(across(c(2:5, 9, 11:16, 20:21, 24:27, 33:38, 43), sum),
             across(c(6:8, 17:19, 28:30, 39:41), max)) %>%
   ungroup() %>%
-  mutate(yards_per_car_off = round(rush_yards_off / carries_off, 1),
-         yards_per_car_def = round(rush_yards_def / carries_def, 1),
-         yards_per_attempt_off = round(passing_yards_off / pass_attempts_off, 1),
-         yards_per_attempt_def = round(passing_yards_def / pass_attempts_def, 1),
-         completion_pct_off = round(completions_off / pass_attempts_off, 4),
-         completion_pct_def = round(completions_def / pass_attempts_def, 4))
+  mutate(`Yds/Carr_off` = round(`Rush Yds_off` / Carries_off, 1),
+         `Yds/Carr_def` = round(`Rush Yds_def` / Carries_def, 1),
+         `Yds/Att_off` = round(`Passing Yds_off` / `Pass Attempts_off`, 1),
+         `Yds/Att_def` = round(`Passing Yds_def` / `Pass Attempts_def`, 1),
+         `Completion%_off` = round(Completions_off / `Pass Attempts_off`, 4),
+         `Completion%_def` = round(Completions_def / `Pass Attempts_def`, 4))
 ```
 
 # Save to fst files
