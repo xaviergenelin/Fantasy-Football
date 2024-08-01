@@ -279,6 +279,82 @@ team_season <- team_weekly %>%
          `Completion%_def` = round(Completions_def / `Pass Attempts_def`, 4))
 ```
 
+# Kicking Data
+```{r kicking_weekly}
+kicking_weekly <- load_player_stats(seasons = start_season:most_recent_season(), stat_type = "kicking") %>%
+  filter(season_type == "REG")
+```
+
+```{r}
+kicking_team_weekly <- kicking_weekly %>%
+  group_by(season, team, week) %>%
+  summarise(`FG Made` = sum(fg_made, na.rm = TRUE),
+            `FG Att` = sum(fg_att, na.rm = TRUE),
+            `FG Missed` = sum(fg_missed, na.rm = TRUE),
+            `FG Blocked` = sum(fg_blocked, na.rm = TRUE),
+            `FG Long` = max(fg_long),
+            `FG Made 0-19` = sum(fg_made_0_19, na.rm = TRUE),
+            `FG Made 20-29` = sum(fg_made_20_29, na.rm = TRUE),
+            `FG Made 30-39` = sum(fg_made_30_39, na.rm = TRUE),
+            `FG Made 40-49` = sum(fg_made_40_49, na.rm = TRUE),
+            `FG Made 50-59` = sum(fg_made_50_59, na.rm = TRUE),
+            `FG Made 60+` = sum(fg_made_60_, na.rm = TRUE),
+            `FG Missed 0-19` = sum(fg_missed_0_19, na.rm = TRUE),
+            `FG Missed 20-29` = sum(fg_missed_20_29, na.rm = TRUE),
+            `FG Missed 30-39` = sum(fg_missed_30_39, na.rm = TRUE),
+            `FG Missed 40-49` = sum(fg_missed_40_49, na.rm = TRUE),
+            `FG Missed 50-59` = sum(fg_missed_50_59, na.rm = TRUE),
+            `FG Missed 60+` = sum(fg_missed_60_, na.rm = TRUE),
+            `PAT Made` = sum(pat_made, na.rm = TRUE),
+            `PAT Att` = sum(pat_att, na.rm = TRUE),
+            `PAT Missed` = sum(pat_missed, na.rm = TRUE),
+            `PAT Blocked` = sum(pat_blocked, na.rm = TRUE))  %>%
+  mutate(`FG%` = round(`FG Made` / `FG Att`, 4),
+         `PAT%` = round(`PAT Made` / `PAT Att`, 4))
+
+kicking_team_weekly
+```
+
+
+```{r kicking_season}
+kicking_season <- kicking_weekly %>%
+  group_by(season, team) %>%
+  summarise(`FG Made` = sum(fg_made, na.rm = TRUE),
+            `FG Att` = sum(fg_att, na.rm = TRUE),
+            `FG Missed` = sum(fg_missed, na.rm = TRUE),
+            `FG Blocked` = sum(fg_blocked, na.rm = TRUE),
+            `FG Long` = max(fg_long, na.rm = TRUE),
+            `FG Made 0-19` = sum(fg_made_0_19, na.rm = TRUE),
+            `FG Made 20-29` = sum(fg_made_20_29, na.rm = TRUE),
+            `FG Made 30-39` = sum(fg_made_30_39, na.rm = TRUE),
+            `FG Made 40-49` = sum(fg_made_40_49, na.rm = TRUE),
+            `FG Made 50-59` = sum(fg_made_50_59, na.rm = TRUE),
+            `FG Made 60+` = sum(fg_made_60_, na.rm = TRUE),
+            `FG Missed 0-19` = sum(fg_missed_0_19, na.rm = TRUE),
+            `FG Missed 20-29` = sum(fg_missed_20_29, na.rm = TRUE),
+            `FG Missed 30-39` = sum(fg_missed_30_39, na.rm = TRUE),
+            `FG Missed 40-49` = sum(fg_missed_40_49, na.rm = TRUE),
+            `FG Missed 50-59` = sum(fg_missed_50_59, na.rm = TRUE),
+            `FG Missed 60+` = sum(fg_missed_60_, na.rm = TRUE),
+            `PAT Made` = sum(pat_made, na.rm = TRUE),
+            `PAT Att` = sum(pat_att, na.rm = TRUE),
+            `PAT Missed` = sum(pat_missed, na.rm = TRUE),
+            `PAT Blocked` = sum(pat_blocked, na.rm = TRUE))  %>%
+  mutate(`FG%` = round(`FG Made` / `FG Att`, 4),
+         `PAT%` = round(`PAT Made` / `PAT Att`, 4))
+
+kicking_season
+```
+
+# Add Kicking data
+```{r add_kicking_data}
+team_weekly <- team_weekly %>%
+  left_join(kicking_team_weekly, by = c("season" = "season", "team_abbr" = "team", "week" = "week"))
+
+team_season <- team_season %>%
+  left_join(kicking_season, by = c("season" = "season", "team_abbr" = "team"))
+```
+
 # Save to fst files
 
 ```{r team_fsts}
