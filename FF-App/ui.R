@@ -10,6 +10,7 @@ library(shinyjs)
 library(ggh4x)
 library(magick)
 library(gt)
+library(plotly)
 
 # load data to use throughout the app
 player_season <- read.fst("../data/player_season.fst")
@@ -173,7 +174,9 @@ shinyUI(navbarPage(
               h4("Defense"),
               DTOutput("teamProfDef")
             )
-          )
+          ),
+          fluidRow(h4("Kicking"), align = "center"),
+          fluidRow(DTOutput("teamProfKick"))
           
         )
       ),
@@ -196,6 +199,14 @@ shinyUI(navbarPage(
             selected = unique(team_season$season),
             multiple = TRUE,
             options = pickerOptions(actionsBox = TRUE)
+          ),
+          
+          radioButtons(
+            inputId = "teamCompSide",
+            label = "",
+            choices = c("Offense", "Defense"),
+            selected = "Offense",
+            inline = TRUE
           )
         ),
         
@@ -231,14 +242,15 @@ shinyUI(navbarPage(
             inline = TRUE
           ),
           
-          pickerInput(
-            inputId = "playerTableCateogry",
-            label = "Select stat category",
-            choices = c("Passing", "Rushing", "Receiving"),
-            selected = c("Passing", "Rushing", "Receiving"),
-            multiple = TRUE,
-            options = pickerOptions(actionsBox = TRUE)
-          ),
+          # come back to this and get it working
+          # pickerInput(
+          #   inputId = "playerTableCateogry",
+          #   label = "Select stat category",
+          #   choices = c("Passing", "Rushing", "Receiving", "Kicking"),
+          #   selected = c("Passing", "Rushing", "Receiving", "Kicking"),
+          #   multiple = TRUE,
+          #   options = pickerOptions(actionsBox = TRUE)
+          # ),
           
           pickerInput(
             inputId = "playerTableSeason",
@@ -258,13 +270,15 @@ shinyUI(navbarPage(
             options = pickerOptions(actionsBox = TRUE)
           ),
           
-          multiInput(
+          pickerInput(
             inputId = "playerTablePlayer",
-            label = "Select player(s)",
+            label = "Select Player(s)",
             choices = str_sort(unique(player_season$Player)),
-            selected = NULL
+            selected = unique(player_season$Player),
+            multiple = TRUE,
+            options = pickerOptions(actionsBox = TRUE,
+                                    liveSearch = TRUE)
           )
-          
         ),
         mainPanel(
           DTOutput("playerDT")

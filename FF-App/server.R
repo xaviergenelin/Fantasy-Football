@@ -10,6 +10,7 @@ library(shinyjs)
 library(ggh4x)
 library(magick)
 library(gt)
+library(plotly)
 
 # load data to use throughout the app
 player_season <- read.fst("../data/player_season.fst")
@@ -25,6 +26,9 @@ pass_cols <- c("Passing Yds", "Pass TDs", "Ints", "Completions", "Pass Attempts"
 rush_cols <- c("Carries", "Rush Yds", "Rush TDs", "Yds/Carr", "Rush Longest", "rush_20plus", "rush_40plus", "rush_stacked_box")
 scoring_cols <- c("Pass TDs", "Rush TDs")
 downs_cols <- c("Ints", "Yds/Carr")
+st_cols <- c("FG Made", "FG Att", "FG Missed", "FG Blocked", "FG%", "FG Long", "PAT Made", "PAT Att", "PAT Missed", "PAT Blocked", "PAT%",
+             "FG Made 0-19", "FG Made 20-29", "FG Made 30-39", "FG Made 40-49", "FG Made 50-59", "FG Made 60+", "FG Missed 0-19", "FG Missed 20-29",
+             "FG Missed 30-39", "FG Missed 40-49", "FG Missed 50-59", "FG Missed 60+")
 
 # team wordmarks, remove the LA rams with the abbreviation of LA (same as the LAR abbrevation)
 team_wordmarks <- teams_colors_logos %>%
@@ -174,6 +178,42 @@ shinyServer(function(input, output, session) {
     cbind(totals, ranks)
   })
   
+  # team profile kicking data
+  teamProfileKicking <- reactive({
+    # summarize the kicking data for the selected seasons
+    kicking_by_team <- team_season %>%
+      filter(season %in% input$teamProfSeasons) %>%
+      group_by(team_name) %>%
+      summarise(`FG Made` = sum(`FG Made`),
+                `FG Att` = sum(`FG Att`),
+                `FG Missed` = sum(`FG Missed`),
+                `FG Blocked` = sum(`FG Blocked`),
+                `FG Long` = max(`FG Long`),
+                `PAT Made` = sum(`PAT Made`),
+                `PAT Att` = sum(`PAT Att`),
+                `PAT Missed` = sum(`PAT Missed`),
+                `PAT Blocked` = sum(`PAT Blocked`)) %>%
+      mutate(`FG%` = round(`FG Made` / `FG Att`, 4),
+             `PAT%` = round(`PAT Made` / `PAT Att`, 4)) %>%
+      relocate(`FG%`, .after = `FG Blocked`)
+    
+    # calculate the rankings for each summarized value
+    kicking_rank_by_team <- kicking_by_team %>%
+      mutate(across(.cols = -team_name, 
+                    ~ ifelse(duplicated(min_rank(desc(.))) | duplicated(min_rank(desc(.)), fromLast = TRUE), 
+                             paste0("T-", min_rank(desc(.))), 
+                             min_rank(desc(.)))))
+    
+    # combine the summarized dataset and the ranking dataset
+    rbind(kicking_by_team, kicking_rank_by_team) %>%
+      filter(team_name == input$teamProfTeam) %>%
+      mutate(row_names = c("Value", "NFL Rank")) %>%
+      relocate(row_names, 1) %>%
+      select(-team_name) %>%
+      `row.names<-`(., NULL) %>%
+      column_to_rownames(var = "row_names")
+  })
+  
   output$teamHeading <- renderUI({
     wordmark <- teamProfileData() %>%
       filter(team_name == input$teamProfTeam) %>%
@@ -203,6 +243,15 @@ shinyServer(function(input, output, session) {
       paging = FALSE
     ),
     rownames = FALSE)
+  })
+  
+  output$teamProfKick <- renderDT({
+    datatable(teamProfileKicking(), options = list(
+      searching = FALSE,
+      lengthChange = FALSE,
+      info = FALSE,
+      paging = FALSE
+    ))
   })
   
   ############## Team Comparison
@@ -253,13 +302,61 @@ shinyServer(function(input, output, session) {
   })
   
   teamCompBarData <- reactive({
-    teamCompData() %>%
-      mutate(team_name = factor(team_name, levels = team_list())) %>%
-      group_by(team_name) %>%
-      summarise(Carries_off = sum(Carries_off),
-                `Rush TDs_off` = sum(`Rush TDs_off`)) %>%
-      ungroup() %>%
-      pivot_longer(cols = !team_name, names_to = "stat", values_to = "value")
+    if(input$teamCompSide == "Offense"){
+      teamCompData() %>%
+        select(team_name, ends_with("_off")) %>%
+        rename_with(~str_remove(., "_off")) %>%
+        group_by(team_name) %>%
+        summarise(Completions = sum(Completions),
+                  `Pass Attempts` = sum(`Pass Attempts`),
+                  `Pass Yds` = sum(`Passing Yds`),
+                  `Pass TDs` = sum(`Pass TDs`),
+                  `Pass 20+` = sum(`Pass 20+`),
+                  `Pass 40+` = sum(`Pass 40+`),
+                  #`Passing Air Yds` = sum(`Passing Air Yds`),
+                  `YAC` = sum(`YAC`),
+                  Ints = sum(Ints),
+                  Carries = sum(Carries),
+                  `Rush Yds` = sum(`Rush Yds`),
+                  `Rush TDs` = sum(`Rush TDs`),
+                  `Rush 20+` = sum(`Rush 20+`),
+                  `Rush 40+` = sum(`Rush 40+`),
+                  `Rush Longest` = max(`Rush Longest`)) %>%
+        ungroup() %>%
+        mutate(`Comp%` = round(Completions / `Pass Attempts`, 4) * 100,
+               `YPC` = round(`Rush Yds` / Carries, 2)) %>%
+        relocate(YPC, .after = `Rush Yds`) %>%
+        relocate(`Comp%`, .after = `Pass Yds`) %>%
+        pivot_longer(cols = !team_name, names_to = "stat", values_to = "value")
+    } else {
+      teamCompData() %>%
+        select(team_name, ends_with("_def")) %>%
+        rename_with(~str_remove(., "_def")) %>%
+        group_by(team_name) %>%
+        summarise(Completions = sum(Completions),
+                  `Pass Attempts` = sum(`Pass Attempts`),
+                  `Pass Yds` = sum(`Passing Yds`),
+                  `Pass TDs` = sum(`Pass TDs`),
+                  `Pass 20+` = sum(`Pass 20+`),
+                  `Pass 40+` = sum(`Pass 40+`),
+                  #`Passing Air Yds` = sum(`Passing Air Yds`),
+                  `YAC` = sum(`YAC`),
+                  Ints = sum(Ints),
+                  Carries = sum(Carries),
+                  `Rush Yds` = sum(`Rush Yds`),
+                  `Rush TDs` = sum(`Rush TDs`),
+                  `Rush 20+` = sum(`Rush 20+`),
+                  `Rush 40+` = sum(`Rush 40+`),
+                  `Rush Longest` = max(`Rush Longest`)) %>%
+        ungroup() %>%
+        mutate(`Comp%` = round(Completions / `Pass Attempts`, 4) * 100,
+               `YPC` = round(`Rush Yds` / Carries, 2)) %>%
+        relocate(YPC, .after = `Rush Yds`) %>%
+        relocate(`Comp%`, .after = `Pass Yds`) %>%
+        pivot_longer(cols = !team_name, names_to = "stat", values_to = "value")
+    }
+    
+      
   })
   
   ## Team 1
@@ -357,8 +454,24 @@ shinyServer(function(input, output, session) {
     }
   })
   
+  playerData <- reactive({
+    playerDataChoice() %>%
+      filter(Player %in% input$playerTablePlayer)
+  })
+  
+  # update player list based on selected positions
+  observeEvent(input$playerTablePosition, {
+    newData <- player_season %>%
+      filter(position %in% input$playerTablePosition)
+    
+    updatePickerInput(session = session,
+                      inputId = "playerTablePlayer",
+                      choices = str_sort(unique(newData$Player)),
+                      selected = unique(newData$Player))
+  })
+  
   output$playerDT <- renderDT({
-    datatable(playerDataChoice(), options = list(scrollX = TRUE))
+    datatable(playerData(), options = list(scrollX = TRUE))
   })
   
   ############## Player Profile
@@ -417,7 +530,6 @@ shinyServer(function(input, output, session) {
       filter(Player == input$playerProfPlayer) %>%
       filter(season %in% input$playerProfSeason)
   })
-
   
   # player profile line graph
   
@@ -476,6 +588,11 @@ shinyServer(function(input, output, session) {
   # create a list of the players names 
   player_list <- reactive({
     c(unique(playerCompData()$Player))
+  })
+  
+  # create a list of the players positions
+  player_positions <- reactive({
+    c(unique(playerCompData()$Position))
   })
   
   
@@ -659,7 +776,16 @@ shinyServer(function(input, output, session) {
     playerCompData() %>%
       mutate(Player = factor(Player, levels = player_list())) %>%
       group_by(Player) %>%
-      summarise(Carries = sum(Carries),
+      summarise(`Fantasy Points` = sum(`Fantasy Points`),
+                `Fantasy Points PPR` = sum(`Fantasy Points PPR`),
+                Completions = sum(Completions),
+                Attempts = sum(Attempts),
+                `Passing Yds` = sum(`Passing Yds`),
+                `Passing TDs` = sum(`Passing TDs`),
+                `Passing Air Yds` = sum(`Passing Air Yds`),
+                `Passing YAC` = sum(`Passing YAC`),
+                Interceptions = sum(Interceptions),
+                Carries = sum(Carries),
                 `Rushing Yds` = sum(`Rushing Yds`),
                 `Rushing TDs` = sum(`Rushing TDs`),
                 Receptions = sum(Receptions),
@@ -667,9 +793,7 @@ shinyServer(function(input, output, session) {
                 `Receiving Yds` = sum(`Receiving Yds`),
                 `Receiving Air Yds` = sum(`Receiving Air Yds`),
                 `Receiving YAC` = sum(`Receiving YAC`),
-                `Receiving TDs` = sum(`Receiving TDs`),
-                `Fantasy Points` = sum(`Fantasy Points`),
-                `Fantasy Points PPR` = sum(`Fantasy Points PPR`)) %>%
+                `Receiving TDs` = sum(`Receiving TDs`)) %>%
       ungroup() %>%
       pivot_longer(cols = !Player, names_to = "stat", values_to = "value") %>%
       arrange(factor(Player, levels = player_list()))
