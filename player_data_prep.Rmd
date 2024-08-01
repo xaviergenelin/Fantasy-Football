@@ -144,12 +144,13 @@ player_kicking_season <- player_kicking_weekly %>%
 player_weekly <- bind_rows(player_weekly, player_kicking_weekly) %>%
   mutate(Player = coalesce(Player, player_display_name),
          recent_team = coalesce(recent_team, team)) %>%
-  select(-c(player_display_name, team, player_name))
+  select(-c(player_display_name, team, player_name)) %>%
+  filter(position %in% c("QB", "RB", "FB", "WR", "TE", "K"))
 
 player_season <- bind_rows(player_season, player_kicking_season) %>%
-  filter(!is.na(`FG Made`)) %>%
   mutate(Player = coalesce(Player, player_display_name)) %>%
-  select(-c(player_display_name, team, position_group))
+  select(-c(player_display_name, team, position_group)) %>%
+  filter(position %in% c("QB", "RB", "FB", "WR", "TE", "K"))
 ```
 
 # Save to fst files
