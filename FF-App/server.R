@@ -78,30 +78,32 @@ shinyServer(function(input, output, session) {
   
   teamDTFinal <- reactive({
     # choose column groups based on user input
-    if(input$teamOffDefTypes == "Overall"){
-      teamDTOffDef() %>%
-        select(-not_overall_cols)
-    } else if(input$teamOffDefTypes == "Passing"){
-      teamDTOffDef() %>%
-        select(-rush_cols)
-    } else if(input$teamOffDefTypes == "Rushing"){
-      teamDTOffDef() %>%
-        select(-pass_cols)
-    } else if(input$teamOffDefTypes == "Scoring"){
-      teamDTOffDef() %>%
-        select(-pass_cols)
-    } else if(input$teamOffDefTypes == "Downs"){
-      teamDTOffDef() %>%
-        select(-rush_cols)
-    } else {
-      teamDTOffDef()
-    }
+    # if(input$teamOffDefTypes == "Overall"){
+    #   teamDTOffDef() %>%
+    #     select(-not_overall_cols)
+    # } else if(input$teamOffDefTypes == "Passing"){
+    #   teamDTOffDef() %>%
+    #     select(-rush_cols)
+    # } else if(input$teamOffDefTypes == "Rushing"){
+    #   teamDTOffDef() %>%
+    #     select(-pass_cols)
+    # } else if(input$teamOffDefTypes == "Scoring"){
+    #   teamDTOffDef() %>%
+    #     select(-pass_cols)
+    # } else if(input$teamOffDefTypes == "Downs"){
+    #   teamDTOffDef() %>%
+    #     select(-rush_cols)
+    # } else {
+    #   teamDTOffDef()
+    # }
+    teamDTOffDef()
   })
   
-  output$teamDT <- renderDT(
+  output$teamDT <- renderDT({
     # show the resulting dataset for the team data table
-    datatable(teamDTFinal(), options = list(scrollX = TRUE))
-  )
+    teamDTFreeze <- ifelse(input$teamDataSeaWk == "Season", 4, 5)
+    datatable(teamDTFinal(), extensions = 'FixedColumns', options = list(scrollX = TRUE, fixedColumns = list(leftColumns = teamDTFreeze)))
+  })
   
   ### Team Profile ###
   
@@ -450,7 +452,8 @@ shinyServer(function(input, output, session) {
       player_season %>%
         select(-c(player_id, headshot_url))
     } else {
-      player_weekly
+      player_weekly %>%
+        select(-c(player_id, position_group, headshot_url, season_type, opponent_team))
     }
   })
   
@@ -471,7 +474,8 @@ shinyServer(function(input, output, session) {
   })
   
   output$playerDT <- renderDT({
-    datatable(playerData(), options = list(scrollX = TRUE))
+    playerDTFreeze <- ifelse(input$playerTableType == "Season", 4, 6)
+    datatable(playerData(), extensions = 'FixedColumns', options = list(scrollX = TRUE, fixedColumns = list(leftColumns = playerDTFreeze)))
   })
   
   ############## Player Profile
@@ -539,7 +543,8 @@ shinyServer(function(input, output, session) {
       geom_line(aes_string(y = as.name(input$playerProfVariable)), size = 1) +
       scale_x_discrete(guide = guide_axis_nested(delim = "-")) +
       geom_hline(yintercept = mean(playerProfileWk()[[input$playerProfVariable]]), linetype = "dashed") +
-      theme_bw()
+      theme_bw() +
+      labs(x = "Game")
   })
   
   ############## Player comparison
@@ -659,12 +664,12 @@ shinyServer(function(input, output, session) {
   
   # player's average value for selected variable
   output$player1_avg <- renderText({
-    round(mean(player1_data()[[input$playerCompStat]]), 1)
+    paste0("Avg ", input$playerCompStat, ": ", round(mean(player1_data()[[input$playerCompStat]]), 1))
   })
 
   # player's median value for selected variable
   output$player1_med <- renderText({
-    median(player1_data()[[input$playerCompStat]])
+    paste0("Med ", input$playerCompStat, ": ", median(player1_data()[[input$playerCompStat]]))
   })
   
   ###########################
@@ -693,12 +698,12 @@ shinyServer(function(input, output, session) {
   
   # player's average value for selected variable
   output$player2_avg <- renderText({
-    round(mean(player2_data()[[input$playerCompStat]]), 1)
+    paste0("Avg ", input$playerCompStat, ": ", round(mean(player2_data()[[input$playerCompStat]]), 1))
   })
   
   # player's median value for selected variable
   output$player2_med <- renderText({
-    median(player2_data()[[input$playerCompStat]])
+    paste0("Med ", input$playerCompStat, ": ", median(player2_data()[[input$playerCompStat]]))
   })
   
   ###########################
@@ -727,12 +732,12 @@ shinyServer(function(input, output, session) {
   
   # player's average value for selected variable
   output$player3_avg <- renderText({
-    round(mean(player3_data()[[input$playerCompStat]]), 1)
+    paste0("Avg ", input$playerCompStat, ": ", round(mean(player3_data()[[input$playerCompStat]]), 1))
   })
   
   # player's median value for selected variable
   output$player3_med <- renderText({
-    median(player3_data()[[input$playerCompStat]])
+    paste0("Med ", input$playerCompStat, ": ", median(player3_data()[[input$playerCompStat]]))
   })
   
   ###########################
@@ -761,12 +766,12 @@ shinyServer(function(input, output, session) {
   
   # player's average value for selected variable
   output$player4_avg <- renderText({
-    round(mean(player4_data()[[input$playerCompStat]]), 1)
+    paste0("Avg ", input$playerCompStat, ": ", round(mean(player4_data()[[input$playerCompStat]]), 1))
   })
   
   # player's median value for selected variable
   output$player4_med <- renderText({
-    median(player4_data()[[input$playerCompStat]])
+    paste0("Med ", input$playerCompStat, ": ", median(player4_data()[[input$playerCompStat]]))
   })
   
   ## player comparison graphs
@@ -817,27 +822,48 @@ shinyServer(function(input, output, session) {
             axis.title.y = element_blank(),
             legend.title = element_blank(),
             panel.background = element_blank(),
-            panel.border = element_blank()) +
+            panel.border = element_blank(),
+            legend.position = "none") +
       scale_fill_manual(values = alpha(c("#000080", "#800080", "#C0C0C0", "#FFD700")))
 
   })
   
-  # line graph data
-  playerCompLineData <- reactive({
+  # Player Comparison graph data
+  playerCompGraphs <- reactive({
     playerCompData() %>%
       mutate(Player = factor(Player, levels = player_list()))
   })
   
+  # Player Comparison Line graph
   output$playerCompLineGraph <- renderPlot({
-    ggplot(data = playerCompLineData(), aes(x = interaction(week, season, sep = "-"),
+    ggplot(data = playerCompGraphs(), aes(x = interaction(week, season, sep = "-"),
                                             group = Player, 
                                             color = Player)) +
-      geom_line(aes_string(y = input$playerCompStat), size = 1) +
+      geom_line(aes_string(y = as.name(input$playerCompStat)), size = 1) +
       scale_x_discrete(guide = guide_axis_nested(delim = "-")) +
       theme_bw() +
-      scale_color_manual(values = c("#000080", "#800080", "#C0C0C0", "#FFD700"))
+      scale_color_manual(values = c("#000080", "#800080", "#C0C0C0", "#FFD700")) +
+      labs(x = "Game") +
+      theme(legend.position = "none")
   })
   
+  # Boxplot
+  output$playerCompBoxplot <- renderPlot({
+    ggplot(data = playerCompGraphs(), aes(x = Player, y = .data[[input$playerCompStat]], fill = Player)) +
+      geom_boxplot() +
+      geom_jitter(color = "black", size = 0.4, alpha = 0.6) +
+      labs(x = "") +
+      scale_fill_manual(values = alpha(c("#000080", "#800080", "#C0C0C0", "#FFD700"))) +
+      theme(legend.position = "none")
+  })
+  
+  # Density
+  output$playerCompDensity <- renderPlot({
+    ggplot(data = playerCompGraphs(), aes(x = .data[[input$playerCompStat]], group = Player, fill = Player)) +
+      geom_density(alpha = 0.4, adjust = 1.5) +
+      scale_fill_manual(values = alpha(c("#000080", "#800080", "#C0C0C0", "#FFD700"))) +
+      theme(legend.position = "none")
+  })
 })
 
 

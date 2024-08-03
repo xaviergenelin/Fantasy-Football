@@ -30,24 +30,44 @@ shinyUI(navbarPage(
       title = "About",
                tabPanel(
                  # Overall App information
-                 title = "Overall", 
+                 title = "About the App", 
                  
-                 h2("Overall"),
-                 "This app will be used to easily examine fantasy football data. There will be various options for a person to use to explore NFL data.",
-                 "Currently it is just a data visualization tool to explore team and player data. In the future, it will include fantasy point projections"),
+                 h2("About the App"),
+                 "Welcome to my fantasy football app!",
+                 "This app will be used to easily examine fantasy football data. There will be various options for you to use to explore NFL data since the 2015 season.",
+                 br(),
+                 br(),
+                 "Currently it is just a data visualization tool to explore team and player data. It is broken out between team and player data.",
+                 "Each tab will have a data table where you can explore the data you're interested in, a profile for the team/player that you choose,
+                 or a comparison between teams/players.",
+                 "There are more details under the About tab for some features or how to interpret the visuals in case you aren't very familiar with some of them.",
+                 br(),
+                 br(),
+                 "Eventually, I hope to build a model to predict fantasy points at a weekly level to compare to current projections and if possible for this
+                 year help build some type of draft optimizer",
+                 "(Ideally before the upcoming season but we'll see about that).",
+                 "I'd also like to do some other nerdy statistical stuff but I'm still working on how I want to approach it.",
+                 br(),
+                 br(),
+                 "If there are any thoughts you have about any additions you'd like to see or any modifications to what I have currently, I'd love to hear them!",
+                 "None of this is set in stone and just is a starting point."
+                 ),
                
                tabPanel(
                  # Team Data information
                  title = "Team Tab",
                  h2("Data Table"),
-                 "The team section will have general team data from both the offense and defense",
-                 "It will be broken out into different secitons: Overall, Rushing, Passing, Red Zone, Scoring, Downs. More details about each are below",
+                 "The team section will have general team data from both the offense and defense.",
+                 "It will be broken out into different secitons: Overall, Rushing, Passing, Scoring, Downs.",
                  # Team Overall information
                  h2("Team Profile"),
-                 "This will allow you to select a team and get recent statistics on them",
+                 "This will allow you to select a single team offensive, defensive, and kicking data for whatever seasons you decide to look at. It also includes NFL
+                 rankings for each category.",
                  # Team Passing information
-                 h3("Team Comparison"),
-                 "This will allow you to compare teams side by side",
+                 h2("Team Comparison"),
+                 "This will allow you to compare teams side by side. This is similar to the team profile, except it shows either offensive or defensive data at once.",
+                 "If you select offensive data, it will show the offensive data for both teams and compare the two using a stacked bar chart. At some point I'd like to
+                 do a head-to-head comparison option as if they were playing each other."
                 
                  ),
                
@@ -56,12 +76,14 @@ shinyUI(navbarPage(
                  title = "Player Tab",
                  h2("Data Table"),
                  "The Player tab will have 3 different options: Data Table, Player Profile, and Player Comparison",
-                 h3("Player Data"),
-                 "Something",
-                 h3("Player Profile"),
-                 "An overview of a player",
-                 h3("Player Comparison"),
-                 "This will allow someone to compare players side by side"
+                 h2("Player Profile"),
+                 "This gives a general overview of a player.",
+                 "It will show a weekly line graph for a statistic you choose and some information about their fantasy scoring for the seasons selected.",
+                 h2("Player Comparison"),
+                 "This will allow you to compare up to 4 players at once side by side.",
+                 "There are also two options where you can choose the total values which shows a stacked bar chart to compare values side by side, or a weekly
+                 line graph where you choose a statistic."
+                 
                )
       
       ),# End of the About Tab
@@ -91,13 +113,13 @@ shinyUI(navbarPage(
             inline = TRUE
           ),
           
-          radioButtons(
-            inputId = "teamOffDefTypes",
-            label = "Stat options",
-            choices = c("Overall", "Passing", "Rushing", "Scoring", "Downs", "Special Teams"),
-            selected = "Overall",
-            inline = TRUE
-          ),
+          # radioButtons(
+          #   inputId = "teamOffDefTypes",
+          #   label = "Stat options",
+          #   choices = c("Overall", "Passing", "Rushing", "Scoring", "Downs", "Special Teams"),
+          #   selected = "Overall",
+          #   inline = TRUE
+          # ),
           
           pickerInput(
             inputId = "teamDataSeasons",
@@ -308,7 +330,9 @@ shinyUI(navbarPage(
           selectInput(
             inputId = "playerProfVariable",
             label = "Select Variable",
-            choices = c("Fantasy Points", "Fantasy Points PPR")
+            choices = c("Fantasy Points", "Fantasy Points PPR", "Completions", "Attempts", "Passing Yds", "Passing TDs", "Interceptions", "Passing Air Yds", 
+                        "Passing YAC", "Carries", "Rushing Yds", "Rushing TDs", "Receptions", "Targets", "Receiving Yds", "Receiving TDs", "Receiving Air Yds",
+                        "Receiving YAC", "Target Share", "Air Yds Share")
           )
         ), # end of the player profile sidebar panel
         
@@ -342,17 +366,18 @@ shinyUI(navbarPage(
           radioButtons(
             inputId = "playerCompPlot",
             label = "Chart",
-            choices = c("Totals", "Weekly"),
-            selected = "Totals",
+            choices = c("Stacked Bar Chart", "Line Graph", "Boxplot", "Density"),
+            selected = "Stacked Bar Chart",
             inline = TRUE
           ),
           
           selectInput(
             inputId = "playerCompStat",
             label = "Select a Stat",
-            choices = c("Targets", "Receptions"),
-            
-            selected = 1
+            choices = c("Fantasy Points", "Fantasy Points PPR", "Completions", "Attempts", "Passing Yds", "Passing TDs", "Interceptions", "Passing Air Yds", 
+                        "Passing YAC", "Carries", "Rushing Yds", "Rushing TDs", "Receptions", "Targets", "Receiving Yds", "Receiving TDs", "Receiving Air Yds",
+                        "Receiving YAC", "Target Share", "Air Yds Share"),
+            selected = "Fantasy Points"
           )
         ), # end of the player comparison sidebar panel
         
@@ -454,12 +479,20 @@ shinyUI(navbarPage(
             ),
             # Overall stacked bar chart
             conditionalPanel(
-              condition = "input.playerCompPlot == 'Totals'",
+              condition = "input.playerCompPlot == 'Stacked Bar Chart'",
               plotOutput("playerCompBarGraph")
             ),
             conditionalPanel(
-              condition = "input.playerCompPlot == 'Weekly'",
+              condition = "input.playerCompPlot == 'Line Graph'",
               plotOutput("playerCompLineGraph")
+            ),
+            conditionalPanel(
+              condition = "input.playerCompPlot == 'Boxplot'",
+              plotOutput("playerCompBoxplot")
+            ),
+            conditionalPanel(
+              condition = "input.playerCompPlot == 'Density'",
+              plotOutput("playerCompDensity")
             )
             
           ),
