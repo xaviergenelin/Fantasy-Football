@@ -355,8 +355,46 @@ team_season <- team_season %>%
   left_join(kicking_season, by = c("season" = "season", "team_abbr" = "team"))
 ```
 
-# Save to fst files
+# Add Scoring data
+```{r}
+schedules <- load_schedules(seasons = start_season:most_recent_season()) %>%
+  filter(game_type == "REG") %>%
+  select(season, week, away_team, away_score, home_team, home_score) 
 
+away_scores <- schedules %>%
+  select(-home_team) %>%
+  rename(team = away_team, 
+         `Points For` = away_score,
+         `Points Against` = home_score)
+
+home_scores <- schedules %>%
+  select(-away_team) %>%
+  rename(team = home_team, 
+         `Points For` = home_score,
+         `Points Against` = away_score)
+
+scores <- rbind(away_scores, home_scores)
+scores
+```
+
+```{r}
+# add in the weekly points scored and given up to the team_weekly dataset
+team_weekly <- team_weekly %>%
+  left_join(scores, by = c("team_abbr" = "team", "season" = "season", "week" = "week"))
+
+# aggregate the points scored and given up
+scores_agg <- scores %>%
+  group_by(season, team) %>%
+  summarise(`Points For` = sum(`Points For`),
+            `Points Against` = sum(`Points Against`))
+
+# add in the aggregated poitns scored and given up to the team_season dataset
+team_season <- team_season %>%
+  left_join(scores_agg, by = c("team_abbr" = "team", "season" = "season"))
+```
+
+
+# Save to fst files
 ```{r team_fsts}
 write.fst(team_weekly, "data/team_weekly.fst")
 write.fst(team_season, "data/team_season.fst")

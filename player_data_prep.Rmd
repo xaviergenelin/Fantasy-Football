@@ -60,7 +60,8 @@ player_weekly <- load_player_stats(seasons = c(start_season:most_recent_season()
          `Air Yds Share` = air_yards_share,
          `Special Teams TDs` = special_teams_tds,
          `Fantasy Points` = fantasy_points,
-         `Fantasy Points PPR` = fantasy_points_ppr)
+         `Fantasy Points PPR` = fantasy_points_ppr) %>%
+  mutate(`Target Share` = round(`Target Share`, 4))
 
 player_weekly
 ```
