@@ -1,0 +1,12 @@
+name: Fantasy-Football-App
+title: Fantasy-Football-App
+username: xaviergenelin
+account: xaviergenelin
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 12410113
+bundleId: 8948711
+url: https://xaviergenelin.shinyapps.io/Fantasy-Football-App/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
