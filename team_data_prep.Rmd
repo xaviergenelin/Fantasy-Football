@@ -364,14 +364,14 @@ schedules <- load_schedules(seasons = start_season:most_recent_season()) %>%
 away_scores <- schedules %>%
   select(-home_team) %>%
   rename(team = away_team, 
-         `Points For` = away_score,
-         `Points Against` = home_score)
+         Points_off = away_score,
+         Points_def = home_score)
 
 home_scores <- schedules %>%
   select(-away_team) %>%
   rename(team = home_team, 
-         `Points For` = home_score,
-         `Points Against` = away_score)
+         Points_off = home_score,
+         Points_def = away_score)
 
 scores <- rbind(away_scores, home_scores)
 scores
@@ -385,8 +385,8 @@ team_weekly <- team_weekly %>%
 # aggregate the points scored and given up
 scores_agg <- scores %>%
   group_by(season, team) %>%
-  summarise(`Points For` = sum(`Points For`),
-            `Points Against` = sum(`Points Against`))
+  summarise(Points_off = sum(Points_off),
+            Points_def = sum(Points_def))
 
 # add in the aggregated poitns scored and given up to the team_season dataset
 team_season <- team_season %>%

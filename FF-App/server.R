@@ -30,6 +30,18 @@ st_cols <- c("FG Made", "FG Att", "FG Missed", "FG Blocked", "FG%", "FG Long", "
              "FG Made 0-19", "FG Made 20-29", "FG Made 30-39", "FG Made 40-49", "FG Made 50-59", "FG Made 60+", "FG Missed 0-19", "FG Missed 20-29",
              "FG Missed 30-39", "FG Missed 40-49", "FG Missed 50-59", "FG Missed 60+")
 
+team_profile_order <- c("Points", "Carries", "Rush Yds", "YPC", "Rush TDs", "Rush Fum", "Completions", "Pass Attempts", "Comp%", 
+                   "Pass Yds", "Pass TDs", "Ints", "Yds/Att", "YAC", "Sacks")
+team_comp_totals_order <- c("Comp%", "Pass Longest", "Pass 40+", "Pass 20+", "YAC", "Yds/Att", "Ints", "Pass TDs", "Pass Yds", 
+                     "Pass Attempts", "Completions", "Rush Longest", "Rush 40+", "Rush 20+", "Rush TDs", 
+                     "YPC", "Rush Yds", "Carries", "Points")
+team_comp_per_game_order <- c("Comp%","YAC", "Yds/Att", "Ints", "Pass TDs", "Pass Yds", 
+                              "Pass Attempts", "Completions", "Rush TDs", 
+                              "YPC", "Rush Yds", "Carries", "Points")
+player_comp_cols_order <- c("Receiving Air Yds", "Receiving YAC", "Receiving TDs", "Receiving Yds", "Targets", "Receptions", "Rushing TDs", 
+                            "Rushing Yds", "Carries", "Passing YAC", "Passing Air Yds", "Interceptions", "Passing TDs", "Passing Yds", "Attempts", 
+                            "Completions", "Fantasy Points PPR", "Fantasy Points")
+
 # team wordmarks, remove the LA rams with the abbreviation of LA (same as the LAR abbrevation)
 team_wordmarks <- teams_colors_logos %>%
   filter(team_abbr != "LA")
@@ -105,18 +117,18 @@ shinyServer(function(input, output, session) {
     datatable(teamDTFinal(), extensions = 'FixedColumns', options = list(scrollX = TRUE, fixedColumns = list(leftColumns = teamDTFreeze)))
   })
   
-  ### Team Profile ###
+  ###### Team Profile ######
   
   teamProfileData <- reactive({
-    team_season %>%
+    team_weekly %>%
       filter(season %in% input$teamProfSeasons) %>%
       group_by(team_name) %>%
       summarise(Carries_off = sum(Carries_off),
                 `Rush Yds_off` = sum(`Rush Yds_off`),
                 `Rush TDs_off` = sum(`Rush TDs_off`),
                 `Rush Fum_off` = sum(`Rush Fum_off`),
-                `Passing Yds_off` = sum(`Passing Yds_off`),
-                `Pass_TDs_off` = sum(`Pass TDs_off`),
+                `Pass Yds_off` = sum(`Passing Yds_off`),
+                `Pass TDs_off` = sum(`Pass TDs_off`),
                 Ints_off = sum(Ints_off),
                 YAC_off = sum(YAC_off),
                 Sacks_off = sum(Sacks_off),
@@ -126,24 +138,80 @@ shinyServer(function(input, output, session) {
                 `Rush Yds_def` = sum(`Rush Yds_def`),
                 `Rush TDs_def` = sum(`Rush TDs_def`),
                 `Rush Fum_def` = sum(`Rush Fum_def`),
-                `Passing Yds_def` = sum(`Passing Yds_def`),
+                `Pass Yds_def` = sum(`Passing Yds_def`),
                 `Pass TDs_def` = sum(`Pass TDs_def`),
                 Ints_def = sum(Ints_def),
                 YAC_def = sum(YAC_def),
                 Sacks_def = sum(Sacks_def),
                 Completions_def = sum(Completions_def),
-                `Pass Attempts_def` = sum(`Pass Attempts_def`))
+                `Pass Attempts_def` = sum(`Pass Attempts_def`),
+                Points_off = sum(Points_off),
+                Points_def = sum(Points_def),
+                games = n()) %>%
+      mutate(`Comp%_off` = format(round(`Completions_off`/`Pass Attempts_off`, 4) * 100, nsmall = 2),
+             `Comp%_def` = format(round(`Completions_def`/`Pass Attempts_def`, 4) * 100, nsmall = 2),
+             YPC_off = round(`Rush Yds_off` / `Carries_off`, 2),
+             YPC_def = round(`Rush Yds_def` / `Carries_def`, 2),
+             `Yds/Att_off` = round(`Pass Yds_off` / `Pass Attempts_off`, 1),
+             `Yds/Att_def` = round(`Pass Yds_def` / `Pass Attempts_def`, 1))
   })
   
   teamProfileRanks <- reactive({
-    teamProfileData()%>%
-      mutate(across(.cols = -team_name, 
+    teamProfileData() %>%
+      mutate(across(.cols = ends_with("_off"), 
                     ~ ifelse(duplicated(min_rank(desc(.))) | duplicated(min_rank(desc(.)), fromLast = TRUE), 
                              paste0("T-", min_rank(desc(.))), 
-                             min_rank(desc(.)))))
+                             min_rank(desc(.))))) %>%
+      mutate(across(.cols = ends_with("_def"),
+                    ~ ifelse(duplicated(min_rank(.)) | duplicated(min_rank(.), fromLast = TRUE), 
+                             paste0("T-", min_rank(.)), 
+                             min_rank(.))))
   })
   
-  teamProfileOff <- reactive({
+  # data per game
+  teamProfileDataPerGame <- reactive({
+    teamProfileData() %>%
+      select(-c(`Comp%_off`, `Comp%_def`)) %>%
+      mutate(across(.cols = -team_name, ~round(.x/games, 2))) %>%
+      select(-games) %>%
+      mutate(`Comp%_off` = format(round(`Completions_off`/`Pass Attempts_off`, 4) * 100, nsmall = 2),
+             `Comp%_def` = format(round(`Completions_def`/`Pass Attempts_def`, 4) * 100, nsmall = 2),
+             YPC_off = round(`Rush Yds_off` / `Carries_off`, 2),
+             YPC_def = round(`Rush Yds_def` / `Carries_def`, 2),
+             `Yds/Att_off` = round(`Pass Yds_off` / `Pass Attempts_off`, 1),
+             `Yds/Att_def` = round(`Pass Yds_def` / `Pass Attempts_def`, 1))
+      
+  })
+  
+  # data per game rankings
+  teamProfileRanksPerGame <- reactive({
+    teamProfileDataPerGame() %>%
+      mutate(across(.cols = ends_with("_off"), 
+                    ~ ifelse(duplicated(min_rank(desc(.))) | duplicated(min_rank(desc(.)), fromLast = TRUE), 
+                             paste0("T-", min_rank(desc(.))), 
+                             min_rank(desc(.))))) %>%
+      mutate(across(.cols = ends_with("_def"),
+                    ~ ifelse(duplicated(min_rank(.)) | duplicated(min_rank(.), fromLast = TRUE), 
+                             paste0("T-", min_rank(.)), 
+                             min_rank(.))))
+  })
+  
+  ### Team Heading Wordmark
+  output$teamHeading <- renderUI({
+    wordmark <- teamProfileData() %>%
+      filter(team_name == input$teamProfTeam) %>%
+      select(team_name) %>%
+      left_join(team_wordmarks, by = c("team_name" = "team_name")) %>%
+      select(team_wordmark) %>%
+      pull()
+    
+    tags$img(src = wordmark, style = "max-width: 50%; heigh: auto;")
+  })
+  
+  ###### Offensive Team Profile
+  
+  # Offensive Totals Data 
+  teamProfileOffTotals <- reactive({
     totals <- teamProfileData() %>%
       filter(team_name == input$teamProfTeam) %>%
       select(ends_with("_off")) %>%
@@ -159,10 +227,68 @@ shinyServer(function(input, output, session) {
       as.data.frame() %>%
       rename("NFL Rankings" = "V1")
     
-    cbind(totals, ranks)
+    df <- cbind(totals, ranks)
+    
+    df[team_profile_order, ]
   })
   
-  teamProfileDef <- reactive({
+  # Offensive per game data
+  teamProfileOffPerGame <- reactive({
+    totals <- teamProfileDataPerGame() %>%
+      filter(team_name == input$teamProfTeam) %>%
+      select(ends_with("_off")) %>%
+      rename_with(~str_remove(., "_off")) %>%
+      t() %>%
+      as.data.frame() %>%
+      rename("Value" = "V1")
+    
+    ranks <- teamProfileRanksPerGame() %>%
+      filter(team_name == input$teamProfTeam) %>%
+      select(ends_with("_off")) %>%
+      t() %>%
+      as.data.frame() %>%
+      rename("NFL Rankings" = "V1")
+    
+    df <- cbind(totals, ranks)
+    
+    df[team_profile_order, ]
+  })
+  
+  # Datatable for the offensive total data
+  output$teamProfOffTotals <- renderDT({
+    datatable(teamProfileOffTotals(), options = list(
+      searching = FALSE,
+      pageLength = nrow(teamProfileOffTotals()),
+      lengthChange = FALSE,
+      info = FALSE,
+      paging = FALSE
+    ))
+  })
+  
+  # Datatable for the offensive per game data
+  output$teamProfOffPerGame <- renderDT({
+    datatable(teamProfileOffPerGame(), options = list(
+      searching = FALSE,
+      pageLength = nrow(teamProfileOffPerGame()),
+      lengthChange = FALSE,
+      info = FALSE,
+      paging = FALSE
+    ))
+  })
+  
+  # Offensive Output
+  output$teamProfOffCondition <- renderUI({
+    if(input$teamProfType == "Totals"){
+      DTOutput("teamProfOffTotals")
+    } else {
+      DTOutput("teamProfOffPerGame")
+    }
+  })
+  
+  ###### Defensive Team Profile 
+  
+  # Defensive Totals Data
+  teamProfileDefTotals <- reactive({
     totals <- teamProfileData() %>%
       filter(team_name == input$teamProfTeam) %>%
       select(ends_with("_def")) %>%
@@ -177,68 +303,36 @@ shinyServer(function(input, output, session) {
       as.data.frame() %>%
       rename("NFL Rankings" = "V1")
     
-    cbind(totals, ranks)
+    df <- cbind(totals, ranks)
+    
+    df[team_profile_order, ]
   })
   
-  # team profile kicking data
-  teamProfileKicking <- reactive({
-    # summarize the kicking data for the selected seasons
-    kicking_by_team <- team_season %>%
-      filter(season %in% input$teamProfSeasons) %>%
-      group_by(team_name) %>%
-      summarise(`FG Made` = sum(`FG Made`),
-                `FG Att` = sum(`FG Att`),
-                `FG Missed` = sum(`FG Missed`),
-                `FG Blocked` = sum(`FG Blocked`),
-                `FG Long` = max(`FG Long`),
-                `PAT Made` = sum(`PAT Made`),
-                `PAT Att` = sum(`PAT Att`),
-                `PAT Missed` = sum(`PAT Missed`),
-                `PAT Blocked` = sum(`PAT Blocked`)) %>%
-      mutate(`FG%` = round(`FG Made` / `FG Att`, 4),
-             `PAT%` = round(`PAT Made` / `PAT Att`, 4)) %>%
-      relocate(`FG%`, .after = `FG Blocked`)
-    
-    # calculate the rankings for each summarized value
-    kicking_rank_by_team <- kicking_by_team %>%
-      mutate(across(.cols = -team_name, 
-                    ~ ifelse(duplicated(min_rank(desc(.))) | duplicated(min_rank(desc(.)), fromLast = TRUE), 
-                             paste0("T-", min_rank(desc(.))), 
-                             min_rank(desc(.)))))
-    
-    # combine the summarized dataset and the ranking dataset
-    rbind(kicking_by_team, kicking_rank_by_team) %>%
+  # Defensive per game data
+  teamProfileDefPerGame <- reactive({
+    totals <- teamProfileDataPerGame() %>%
       filter(team_name == input$teamProfTeam) %>%
-      mutate(row_names = c("Value", "NFL Rank")) %>%
-      relocate(row_names, 1) %>%
-      select(-team_name) %>%
-      `row.names<-`(., NULL) %>%
-      column_to_rownames(var = "row_names")
-  })
-  
-  output$teamHeading <- renderUI({
-    wordmark <- teamProfileData() %>%
-      filter(team_name == input$teamProfTeam) %>%
-      select(team_name) %>%
-      left_join(team_wordmarks, by = c("team_name" = "team_name")) %>%
-      select(team_wordmark) %>%
-      pull()
+      select(ends_with("_def")) %>%
+      rename_with(~str_remove(., "_def")) %>%
+      t() %>%
+      as.data.frame() %>%
+      rename("Value" = "V1")
     
-    tags$img(src = wordmark, style = "max-width: 50%; heigh: auto;")
+    ranks <- teamProfileRanksPerGame() %>%
+      filter(team_name == input$teamProfTeam) %>%
+      select(ends_with("_def")) %>%
+      t() %>%
+      as.data.frame() %>%
+      rename("NFL Rankings" = "V1")
+    
+    df <- cbind(totals, ranks)
+    
+    df[team_profile_order, ]
   })
   
-  output$teamProfOff <- renderDT({
-    datatable(teamProfileOff(), options = list(
-      searching = FALSE,
-      pageLength = nrow(teamProfileOff()),
-      lengthChange = FALSE,
-      info = FALSE,
-      paging = FALSE
-    ))
-  })
-  
-  output$teamProfDef <- renderDT({
-    datatable(teamProfileDef(), options = list(
+  # Datatable for the defensive total data
+  output$teamProfDefTotals <- renderDT({
+    datatable(teamProfileDefTotals(), options = list(
       searching = FALSE,
       lengthChange = FALSE,
       info = FALSE,
@@ -247,13 +341,142 @@ shinyServer(function(input, output, session) {
     rownames = FALSE)
   })
   
-  output$teamProfKick <- renderDT({
-    datatable(teamProfileKicking(), options = list(
+  # Datatable for the defensive per game data
+  output$teamProfDefPerGame <- renderDT({
+    datatable(teamProfileDefPerGame(), options = list(
+      searching = FALSE,
+      lengthChange = FALSE,
+      info = FALSE,
+      paging = FALSE
+    ),
+    rownames = FALSE)
+  })
+  
+  # Defensive Conditional output
+  output$teamProfDefCondition <- renderUI({
+    if(input$teamProfType == "Totals"){
+      DTOutput("teamProfDefTotals")
+    } else {
+      DTOutput("teamProfDefPerGame")
+    }
+  })
+  
+  ##### Kicking Data Tables
+  
+  # Team Profile Kicking Data
+  teamProfileKickingData <- reactive({
+    # summarize the kicking data for the selected seasons
+    team_weekly %>%
+      filter(season %in% input$teamProfSeasons) %>%
+      group_by(team_name) %>%
+      summarise(`FG Made` = sum(`FG Made`, na.rm = TRUE),
+                `FG Att` = sum(`FG Att`, na.rm = TRUE),
+                `FG Missed` = sum(`FG Missed`, na.rm = TRUE),
+                `FG Blocked` = sum(`FG Blocked`, na.rm = TRUE),
+                `FG Long` = max(`FG Long`, na.rm = TRUE),
+                `PAT Made` = sum(`PAT Made`, na.rm = TRUE),
+                `PAT Att` = sum(`PAT Att`, na.rm = TRUE),
+                `PAT Missed` = sum(`PAT Missed`, na.rm = TRUE),
+                `PAT Blocked` = sum(`PAT Blocked`, na.rm = TRUE),
+                games = n()) %>%
+      mutate(`FG%` = round(`FG Made` / `FG Att`, 4) * 100,
+             `PAT%` = round(`PAT Made` / `PAT Att`, 4) * 100) %>%
+      relocate(`FG%`, .after = `FG Blocked`)
+  })
+  
+  # Kicking Totals
+  teamProfileKickTotals <- reactive({
+    teamProfileKickingData() %>%
+      select(-games)
+  })
+  
+  # Kicking Totals Ranks
+  teamProfileKickRanks <- reactive({
+    # calculate the rankings for each summarized value
+    teamProfileKickingData() %>%
+      select(-games) %>%
+      mutate(across(.cols = c(`FG Made`, `FG Att`, `FG%`, `FG Long`, `PAT Made`, `PAT Att`, `PAT%`),
+                    ~ ifelse(duplicated(min_rank(desc(.))) | duplicated(min_rank(desc(.)), fromLast = TRUE), 
+                             paste0("T-", min_rank(desc(.))), 
+                             min_rank(desc(.))))) %>%
+      mutate(across(.cols = c(`FG Missed`, `FG Blocked`, `PAT Missed`, `PAT Blocked`),
+                    ~ ifelse(duplicated(min_rank(.)) | duplicated(min_rank(.), fromLast = TRUE), 
+                             paste0("T-", min_rank(.)), 
+                             min_rank(.))))
+  })
+  
+  # Kicking Per Game
+  teamProfileKickPerGame <- reactive({
+    teamProfileKickingData() %>%
+      mutate(across(.cols = -team_name, ~round(.x/games, 2))) %>%
+      select(-c(`FG%`, `PAT%`, games)) %>%
+      mutate(`FG%` = round(`FG Made`/`FG Att`, 4),
+             `PAT%` = round(`PAT Made`/`PAT Att`, 4)) %>%
+      relocate(`FG%`, .after = `FG Blocked`)
+  })
+  
+  # Kicking Ranks Per Game
+  teamProfileKickRanksPerGame <- reactive({
+    teamProfileKickPerGame() %>%
+      mutate(across(.cols = c(`FG Made`, `FG Att`, `FG%`, `FG Long`, `PAT Made`, `PAT Att`, `PAT%`),
+                    ~ ifelse(duplicated(min_rank(desc(.))) | duplicated(min_rank(desc(.)), fromLast = TRUE), 
+                             paste0("T-", min_rank(desc(.))), 
+                             min_rank(desc(.))))) %>%
+      mutate(across(.cols = c(`FG Missed`, `FG Blocked`, `PAT Missed`, `PAT Blocked`),
+                    ~ ifelse(duplicated(min_rank(.)) | duplicated(min_rank(.), fromLast = TRUE), 
+                             paste0("T-", min_rank(.)), 
+                             min_rank(.))))
+  })
+  
+  # team profile kicking totals datatable
+  teamProfileKickingTotals <- reactive({
+    # combine the summarized dataset and the ranking dataset
+    rbind(teamProfileKickTotals(), teamProfileKickRanks()) %>%
+      filter(team_name == input$teamProfTeam) %>%
+      mutate(row_names = c("Value", "NFL Rank")) %>%
+      relocate(row_names, 1) %>%
+      select(-team_name) %>%
+      `row.names<-`(., NULL) %>%
+      column_to_rownames(var = "row_names")
+  })
+  
+  # team profile per game datatable
+  teamProfileKickingPerGame <- reactive({
+    # combine the summarized dataset and the ranking dataset
+    rbind(teamProfileKickPerGame(), teamProfileKickRanksPerGame()) %>%
+      filter(team_name == input$teamProfTeam) %>%
+      mutate(row_names = c("Value", "NFL Rank")) %>%
+      relocate(row_names, 1) %>%
+      select(-team_name) %>%
+      `row.names<-`(., NULL) %>%
+      column_to_rownames(var = "row_names")
+  })
+  
+  # Datatable for the kicking total data
+  output$teamProfKickTotals <- renderDT({
+    datatable(teamProfileKickingTotals(), options = list(
       searching = FALSE,
       lengthChange = FALSE,
       info = FALSE,
       paging = FALSE
     ))
+  })
+  
+  output$teamProfKickPerGame <- renderDT({
+    datatable(teamProfileKickingPerGame(), options = list(
+      searching = FALSE,
+      lengthChange = FALSE,
+      info = FALSE,
+      paging = FALSE
+    ))
+  })
+  
+  output$teamProfKickCondition <- renderUI({
+    if(input$teamProfType == "Totals"){
+      DTOutput("teamProfKickTotals")
+    } else {
+      DTOutput("teamProfKickPerGame")
+    }
   })
   
   ############## Team Comparison
@@ -294,7 +517,7 @@ shinyServer(function(input, output, session) {
   
   # team comparison data
   teamCompData <- reactive({
-    team_season %>%
+    team_weekly %>%
       filter(team_name %in% input$teamCompTeams) %>%
       filter(season %in% input$teamCompSeasons)
   })
@@ -315,6 +538,7 @@ shinyServer(function(input, output, session) {
                   `Pass TDs` = sum(`Pass TDs`),
                   `Pass 20+` = sum(`Pass 20+`),
                   `Pass 40+` = sum(`Pass 40+`),
+                  `Pass Longest` = max(`Pass Longest`),
                   #`Passing Air Yds` = sum(`Passing Air Yds`),
                   `YAC` = sum(`YAC`),
                   Ints = sum(Ints),
@@ -323,10 +547,12 @@ shinyServer(function(input, output, session) {
                   `Rush TDs` = sum(`Rush TDs`),
                   `Rush 20+` = sum(`Rush 20+`),
                   `Rush 40+` = sum(`Rush 40+`),
-                  `Rush Longest` = max(`Rush Longest`)) %>%
+                  `Rush Longest` = max(`Rush Longest`),
+                  Points = sum(Points)) %>%
         ungroup() %>%
         mutate(`Comp%` = round(Completions / `Pass Attempts`, 4) * 100,
-               `YPC` = round(`Rush Yds` / Carries, 2)) %>%
+               `YPC` = round(`Rush Yds` / Carries, 2),
+               `Yds/Att` = round(`Pass Yds` / `Pass Attempts`, 1)) %>%
         relocate(YPC, .after = `Rush Yds`) %>%
         relocate(`Comp%`, .after = `Pass Yds`) %>%
         pivot_longer(cols = !team_name, names_to = "stat", values_to = "value")
@@ -341,6 +567,7 @@ shinyServer(function(input, output, session) {
                   `Pass TDs` = sum(`Pass TDs`),
                   `Pass 20+` = sum(`Pass 20+`),
                   `Pass 40+` = sum(`Pass 40+`),
+                  `Pass Longest` = max(`Pass Longest`),
                   #`Passing Air Yds` = sum(`Passing Air Yds`),
                   `YAC` = sum(`YAC`),
                   Ints = sum(Ints),
@@ -349,24 +576,86 @@ shinyServer(function(input, output, session) {
                   `Rush TDs` = sum(`Rush TDs`),
                   `Rush 20+` = sum(`Rush 20+`),
                   `Rush 40+` = sum(`Rush 40+`),
-                  `Rush Longest` = max(`Rush Longest`)) %>%
+                  `Rush Longest` = max(`Rush Longest`),
+                  Points = sum(Points)) %>%
         ungroup() %>%
         mutate(`Comp%` = round(Completions / `Pass Attempts`, 4) * 100,
-               `YPC` = round(`Rush Yds` / Carries, 2)) %>%
+               `YPC` = round(`Rush Yds` / Carries, 2),
+               `Yds/Att` = round(`Pass Yds` / `Pass Attempts`, 1)) %>%
         relocate(YPC, .after = `Rush Yds`) %>%
         relocate(`Comp%`, .after = `Pass Yds`) %>%
         pivot_longer(cols = !team_name, names_to = "stat", values_to = "value")
     }
-    
-      
+  })
+  
+  teamCompBarPerGame <- reactive({
+    if(input$teamCompSide == "Offense"){
+      teamCompData() %>%
+        select(team_name, ends_with("_off")) %>%
+        rename_with(~str_remove(., "_off")) %>%
+        group_by(team_name) %>%
+        summarise(Completions = sum(Completions),
+                  `Pass Attempts` = sum(`Pass Attempts`),
+                  `Pass Yds` = sum(`Passing Yds`),
+                  `Pass TDs` = sum(`Pass TDs`),
+                  #`Pass 20+` = sum(`Pass 20+`),
+                  #`Pass 40+` = sum(`Pass 40+`),
+                  #`Passing Air Yds` = sum(`Passing Air Yds`),
+                  `YAC` = sum(`YAC`),
+                  Ints = sum(Ints),
+                  Carries = sum(Carries),
+                  `Rush Yds` = sum(`Rush Yds`),
+                  `Rush TDs` = sum(`Rush TDs`),
+                  #`Rush 20+` = sum(`Rush 20+`),
+                  #`Rush 40+` = sum(`Rush 40+`),
+                  #`Rush Longest` = max(`Rush Longest`),
+                  Points = sum(Points),
+                  games = n()) %>%
+        mutate(across(.cols = -team_name, ~round(.x/games, 2))) %>%
+        select(-games) %>%
+        ungroup() %>%
+        mutate(`Comp%` = round(Completions / `Pass Attempts`, 4) * 100,
+               `YPC` = round(`Rush Yds` / Carries, 2),
+               `Yds/Att` = round(`Pass Yds` / `Pass Attempts`, 1)) %>%
+        relocate(YPC, .after = `Rush Yds`) %>%
+        relocate(`Comp%`, .after = `Pass Yds`) %>%
+        pivot_longer(cols = !team_name, names_to = "stat", values_to = "value")
+    } else {
+      teamCompData() %>%
+        select(team_name, ends_with("_def")) %>%
+        rename_with(~str_remove(., "_def")) %>%
+        group_by(team_name) %>%
+        summarise(Completions = sum(Completions),
+                  `Pass Attempts` = sum(`Pass Attempts`),
+                  `Pass Yds` = sum(`Passing Yds`),
+                  `Pass TDs` = sum(`Pass TDs`),
+                  #`Pass 20+` = sum(`Pass 20+`),
+                  #`Pass 40+` = sum(`Pass 40+`),
+                  #`Passing Air Yds` = sum(`Passing Air Yds`),
+                  `YAC` = sum(`YAC`),
+                  Ints = sum(Ints),
+                  Carries = sum(Carries),
+                  `Rush Yds` = sum(`Rush Yds`),
+                  `Rush TDs` = sum(`Rush TDs`),
+                  #`Rush 20+` = sum(`Rush 20+`),
+                  #`Rush 40+` = sum(`Rush 40+`),
+                  #`Rush Longest` = max(`Rush Longest`),
+                  Points = sum(Points),
+                  games = n()) %>%
+        mutate(across(.cols = -team_name, ~round(.x/games, 2))) %>%
+        select(-games) %>%
+        ungroup() %>%
+        mutate(`Comp%` = round(Completions / `Pass Attempts`, 4) * 100,
+               `YPC` = round(`Rush Yds` / Carries, 2),
+               `Yds/Att` = round(`Pass Yds` / `Pass Attempts`, 1)) %>%
+        relocate(YPC, .after = `Rush Yds`) %>%
+        relocate(`Comp%`, .after = `Pass Yds`) %>%
+        pivot_longer(cols = !team_name, names_to = "stat", values_to = "value")
+    }
   })
   
   ## Team 1
-  
-  output$team1_name <- renderText({
-    team_list()
-  })
-  
+
   output$team1_wordmark <- renderUI({
     wordmark1 <- teamCompData() %>%
       filter(team_name == team_list()[1]) %>%
@@ -426,12 +715,14 @@ shinyServer(function(input, output, session) {
       pull()
   })
   
-  # Stacked Bar Chart
-  output$teamCompBarGraph <- renderPlot({
+  # Stacked Bar Chart Totals
+  output$teamCompBarGraphTotals <- renderPlot({
     # require a team to be selected in order to show the plot
     req(input$teamCompTeams)
     
-    ggplot(data = teamCompBarData(), aes(x = stat, y = value, fill = team_name)) +
+    ggplot(data = teamCompBarData(), aes(x = factor(stat, team_comp_totals_order), 
+                                         y = value, 
+                                         fill = team_name)) +
       geom_col(position = position_fill(reverse = TRUE)) +
       scale_y_continuous(labels = scales::percent) +
       geom_text(aes(label = value,
@@ -442,7 +733,36 @@ shinyServer(function(input, output, session) {
       guides(color = "none", fill = guide_legend(title = "Team")) +
       coord_flip() +
       # bar colors
-      scale_fill_manual(values = alpha(c(team1_color_main(), team2_color_main())))
+      scale_fill_manual(values = alpha(c(team1_color_main(), team2_color_main()))) +
+      labs(x = "Stats")
+  })
+  
+  output$teamCompBarGraphPerGame <- renderPlot({
+    req(input$teamCompTeams)
+    
+    ggplot(data = teamCompBarPerGame(), aes(x = factor(stat, team_comp_per_game_order), 
+                                         y = value, 
+                                         fill = team_name)) +
+      geom_col(position = position_fill(reverse = TRUE)) +
+      scale_y_continuous(labels = scales::percent) +
+      geom_text(aes(label = value,
+                    color = team_name),
+                position = position_fill(vjust = 0.5, reverse = TRUE)) +
+      # text colors
+      scale_color_manual(values = c(team1_color_text(), team2_color_text())) +
+      guides(color = "none", fill = guide_legend(title = "Team")) +
+      coord_flip() +
+      # bar colors
+      scale_fill_manual(values = alpha(c(team1_color_main(), team2_color_main()))) +
+      labs(x = "Stats")
+  })
+  
+  output$teamCompGraph <- renderUI({
+    if(input$teamCompType == "Totals"){
+      plotOutput("teamCompBarGraphTotals")
+    } else {
+      plotOutput("teamCompBarGraphPerGame")
+    }
   })
   
   ############## Player Data Table
@@ -806,8 +1126,8 @@ shinyServer(function(input, output, session) {
   
   # stacked bar chart
   output$playerCompBarGraph <- renderPlot({
-    
-    ggplot(data = playerCompBarData(), aes(fill = Player, x = stat, y = value)) +
+
+    ggplot(data = subset(playerCompBarData(), value > 0), aes(fill = Player, x = factor(stat, player_comp_cols_order), y = value)) +
       geom_col(position = position_fill(reverse = TRUE)) +
       scale_y_continuous(labels = scales::percent) +
       geom_text(aes(label = value,

@@ -50,19 +50,33 @@ shinyUI(navbarPage(
                  br(),
                  br(),
                  "If there are any thoughts you have about any additions you'd like to see or any modifications to what I have currently, I'd love to hear them!",
-                 "None of this is set in stone and just is a starting point."
+                 "None of this is set in stone and just is a starting point.",
+
+                 h3("Some Quick Notes:"),
+                 "The player comparison line graph I'm looking to show 0's for weeks a player doesn't play. Currently it just jumps to the next point and continues
+                 the line. I think it can be a little cleaner.",
+                 br(),
+                 "I'm also still trying to figure out the colors for the player comparison. In the stacked bar chart those seemed to work well, but don't look as nice
+                 in the line graph.",
+                 br(),
+                 "Lastly, I'm hoping to add in the ability to select columns of interest for both data tables. So instead of scrolling to see rushing or kicking data,
+                 you can just select that option and those columns will appear."
                  ),
                
                tabPanel(
                  # Team Data information
                  title = "Team Tab",
                  h2("Data Table"),
-                 "The team section will have general team data from both the offense and defense.",
-                 "It will be broken out into different secitons: Overall, Rushing, Passing, Scoring, Downs.",
+                 "The data table will have general team data from both the offense and defense.",
+                 #"It will be broken out into different secitons: Overall, Rushing, Passing, Scoring, Downs.",
+                 "You can select from season and weekly data, as well as the teams and seasons/weeks you want to see.",
                  # Team Overall information
                  h2("Team Profile"),
-                 "This will allow you to select a single team offensive, defensive, and kicking data for whatever seasons you decide to look at. It also includes NFL
-                 rankings for each category.",
+                 "This will allow you to select a single team and look at their offensive, defensive, and kicking data for whatever seasons you decide to look at. 
+                 It also includes NFL rankings for each category.",
+                 "Offensive rankings are based on the higest values, so the team with the most passing touchdowns will be ranked first",
+                 "Defense is the opposite using lowest values, so the team with the least passing touchdowns given up will be ranked first",
+                 "Kicking is a mix of the two, FG/PAT made, FG/PAT Attempted, and percentages are ranked by the highest values and the rest use the lowest values.",
                  # Team Passing information
                  h2("Team Comparison"),
                  "This will allow you to compare teams side by side. This is similar to the team profile, except it shows either offensive or defensive data at once.",
@@ -75,15 +89,28 @@ shinyUI(navbarPage(
                  # Player Data information
                  title = "Player Tab",
                  h2("Data Table"),
-                 "The Player tab will have 3 different options: Data Table, Player Profile, and Player Comparison",
+                 "The data table will have player statistics in a table.",
+                 "You can select between season and weekly data, as well as the positions of interest to help filter down the data.",
                  h2("Player Profile"),
                  "This gives a general overview of a player.",
                  "It will show a weekly line graph for a statistic you choose and some information about their fantasy scoring for the seasons selected.",
                  h2("Player Comparison"),
                  "This will allow you to compare up to 4 players at once side by side.",
-                 "There are also two options where you can choose the total values which shows a stacked bar chart to compare values side by side, or a weekly
-                 line graph where you choose a statistic."
-                 
+                 "The colors of the box for each player will be the same as the color in the charts below",
+                 "You will have 4 chart options to choose from: Stacked Bar Chart, Line Graph, Boxplot, Density.",
+                 h4("Stacked Bar Chart"),
+                 "This chart will show all total non-zero data for the players chosen during the given time period.",
+                 h4("Line Graph"),
+                 "This will show a line for each player for the stat selected in the given time period.",
+                 "This can help show trends over time and understand certain characteristis of players throughout their careers.",
+                 h4("Boxplot"),
+                 "This will show a boxplot for each player for the stat selected in the given time period.",
+                 "This can help show the distribution of a statistic for each player. The box will represent the middle 50% of data for that statistic.",
+                 "Wider boxes mean more variability",
+                 "Any dots at the tails represent outliers in the data.",
+                 h4("Density"),
+                 "This will show a density plot for each player for the stat selected in the given time period.",
+                 "This is similar to a boxplot in that it shows the distribution for a statistic using a curve."
                )
       
       ),# End of the About Tab
@@ -107,7 +134,7 @@ shinyUI(navbarPage(
           
           radioButtons(
             inputId = "teamDataGroup",
-            label = "Choose the data grouping",
+            label = NULL,
             choices = c("Offense", "Defense"),
             selected = "Offense",
             inline = TRUE
@@ -176,6 +203,14 @@ shinyUI(navbarPage(
             selected = unique(team_season$season),
             multiple = TRUE,
             options = pickerOptions(actionsBox = TRUE)
+          ),
+          
+          radioButtons(
+            inputId = "teamProfType",
+            label = NULL,
+            choices = c("Totals", "Per Game"),
+            selected = "Totals",
+            inline = TRUE
           )
         ),
         
@@ -187,18 +222,21 @@ shinyUI(navbarPage(
               width = 6,
               align = "center",
               h4("Offense"),
-              DTOutput("teamProfOff")
+              uiOutput("teamProfOffCondition")
+              # conditionalPanel(condition = "input$teamProfType == 'Totals'", DTOutput("teamProfOffTotals")),
+              # ############# not working properly
+              # conditionalPanel(condition = "input$teamProfType == 'Per Game'", DTOutput("teamProfOffPerGame"))
             ),
             column(
               # Defensive Profile
               width = 6,
               align = "center",
               h4("Defense"),
-              DTOutput("teamProfDef")
+              uiOutput("teamProfDefCondition")
             )
           ),
           fluidRow(h4("Kicking"), align = "center"),
-          fluidRow(DTOutput("teamProfKick"))
+          fluidRow(uiOutput("teamProfKickCondition"))
           
         )
       ),
@@ -225,9 +263,17 @@ shinyUI(navbarPage(
           
           radioButtons(
             inputId = "teamCompSide",
-            label = "",
+            label = NULL,
             choices = c("Offense", "Defense"),
             selected = "Offense",
+            inline = TRUE
+          ),
+          
+          radioButtons(
+            inputId = "teamCompType",
+            label = NULL,
+            choices = c("Totals", "Per Game"),
+            selected = "Totals",
             inline = TRUE
           )
         ),
@@ -243,7 +289,7 @@ shinyUI(navbarPage(
               uiOutput("team2_wordmark", align = "center")
             )
           ),
-          plotOutput("teamCompBarGraph")
+          uiOutput("teamCompGraph")
         )
       )
       
