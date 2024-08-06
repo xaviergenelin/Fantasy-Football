@@ -5,7 +5,7 @@ account: xaviergenelin
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 12410113
-bundleId: 8948828
+bundleId: 8950544
 url: https://xaviergenelin.shinyapps.io/Fantasy-Football-App/
 version: 1
 asMultiple: FALSE
