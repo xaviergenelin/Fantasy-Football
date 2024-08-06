@@ -19,7 +19,6 @@ start_season <- 2015
 end_season <- 2023
 ```
 
-
 # Offense
 
 This section will focus on offensive data for each team. One will be broken out into running plays and the other into passing plays. At the end, both will be combined to give one dataframe for team offensive data
@@ -393,10 +392,9 @@ team_season <- team_season %>%
   left_join(scores_agg, by = c("team_abbr" = "team", "season" = "season"))
 ```
 
-
 # Save to fst files
 ```{r team_fsts}
-write.fst(team_weekly, "data/team_weekly.fst")
-write.fst(team_season, "data/team_season.fst")
+write.fst(team_weekly, "./Fantasy-Football-App/data/team_weekly.fst")
+write.fst(team_season, "./Fantasy-Football-App/data/team_season.fst")
 ```
 
