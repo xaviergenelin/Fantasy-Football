@@ -13,10 +13,10 @@ library(gt)
 library(plotly)
 
 # load data to use throughout the app
-player_season <- read.fst("../data/player_season.fst")
-player_weekly <- read.fst("../data/player_weekly.fst")
-team_weekly <- read.fst("../data/team_weekly.fst")
-team_season <- read.fst("../data/team_season.fst")
+player_season <- read.fst("./data/player_season.fst")
+player_weekly <- read.fst("./data/player_weekly.fst")
+team_weekly <- read.fst("./data/team_weekly.fst")
+team_season <- read.fst("./data/team_season.fst")
 
 # list of columns for each team option
 overall_cols <- c("Passing Yds", "Pass TDs", "Ints", "Completions", "Pass Attempts", "Completion%", 
@@ -38,9 +38,11 @@ team_comp_totals_order <- c("Comp%", "Pass Longest", "Pass 40+", "Pass 20+", "YA
 team_comp_per_game_order <- c("Comp%","YAC", "Yds/Att", "Ints", "Pass TDs", "Pass Yds", 
                               "Pass Attempts", "Completions", "Rush TDs", 
                               "YPC", "Rush Yds", "Carries", "Points")
-player_comp_cols_order <- c("Receiving Air Yds", "Receiving YAC", "Receiving TDs", "Receiving Yds", "Targets", "Receptions", "Rushing TDs", 
-                            "Rushing Yds", "Carries", "Passing YAC", "Passing Air Yds", "Interceptions", "Passing TDs", "Passing Yds", "Attempts", 
-                            "Completions", "Fantasy Points PPR", "Fantasy Points")
+player_comp_cols_order <- c("PAT%", "PAT Att", "PAT Made", "FG%", "FG Att", "FG Made", 
+                            "Receiving Air Yds", "Receiving YAC", "Receiving TDs", "Receiving Yds", "Targets", "Receptions", 
+                            "Rushing TDs", "Rushing Yds", "Carries", 
+                            "Passing YAC", "Passing Air Yds", "Interceptions", "Passing TDs", "Passing Yds", "Attempts", "Completions", 
+                            "Fantasy Points PPR", "Fantasy Points")
 
 # team wordmarks, remove the LA rams with the abbreviation of LA (same as the LAR abbrevation)
 team_wordmarks <- teams_colors_logos %>%
@@ -1118,7 +1120,11 @@ shinyServer(function(input, output, session) {
                 `Receiving Yds` = sum(`Receiving Yds`),
                 `Receiving Air Yds` = sum(`Receiving Air Yds`),
                 `Receiving YAC` = sum(`Receiving YAC`),
-                `Receiving TDs` = sum(`Receiving TDs`)) %>%
+                `Receiving TDs` = sum(`Receiving TDs`),
+                `FG Made` = sum(`FG Made`),
+                `FG Att` = sum(`FG Att`),
+                `PAT Made` = sum(`PAT Made`),
+                `PAT Att` = sum(`PAT Att`)) %>%
       ungroup() %>%
       pivot_longer(cols = !Player, names_to = "stat", values_to = "value") %>%
       arrange(factor(Player, levels = player_list()))

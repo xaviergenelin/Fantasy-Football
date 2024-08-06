@@ -13,10 +13,10 @@ library(gt)
 library(plotly)
 
 # load data to use throughout the app
-player_season <- read.fst("../data/player_season.fst")
-player_weekly <- read.fst("../data/player_weekly.fst")
-team_weekly <- read.fst("../data/team_weekly.fst")
-team_season <- read.fst("../data/team_season.fst")
+player_season <- read.fst("./data/player_season.fst")
+player_weekly <- read.fst("./data/player_weekly.fst")
+team_weekly <- read.fst("./data/team_weekly.fst")
+team_season <- read.fst("./data/team_season.fst")
 
 # Define UI for application that analyzes NFL data
 shinyUI(navbarPage(
@@ -378,7 +378,7 @@ shinyUI(navbarPage(
             label = "Select Variable",
             choices = c("Fantasy Points", "Fantasy Points PPR", "Completions", "Attempts", "Passing Yds", "Passing TDs", "Interceptions", "Passing Air Yds", 
                         "Passing YAC", "Carries", "Rushing Yds", "Rushing TDs", "Receptions", "Targets", "Receiving Yds", "Receiving TDs", "Receiving Air Yds",
-                        "Receiving YAC", "Target Share", "Air Yds Share")
+                        "Receiving YAC", "Target Share", "Air Yds Share", "FG Made", "FG Att", "FG%", "PAT Made", "PAT Att", "PAT%")
           )
         ), # end of the player profile sidebar panel
         
@@ -422,7 +422,7 @@ shinyUI(navbarPage(
             label = "Select a Stat",
             choices = c("Fantasy Points", "Fantasy Points PPR", "Completions", "Attempts", "Passing Yds", "Passing TDs", "Interceptions", "Passing Air Yds", 
                         "Passing YAC", "Carries", "Rushing Yds", "Rushing TDs", "Receptions", "Targets", "Receiving Yds", "Receiving TDs", "Receiving Air Yds",
-                        "Receiving YAC", "Target Share", "Air Yds Share"),
+                        "Receiving YAC", "Target Share", "Air Yds Share", "FG Made", "FG Att", "FG%", "PAT Made", "PAT Att", "PAT%"),
             selected = "Fantasy Points"
           )
         ), # end of the player comparison sidebar panel
