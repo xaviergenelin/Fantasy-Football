@@ -775,13 +775,15 @@ shinyServer(function(input, output, session) {
         select(-c(player_id, headshot_url))
     } else {
       player_weekly %>%
-        select(-c(player_id, position_group, headshot_url, season_type, opponent_team))
+        select(-c(player_id, position_group, headshot_url, season_type, opponent_team)) %>%
+        filter(week %in% input$playerTableWeek)
     }
   })
   
   playerData <- reactive({
     playerDataChoice() %>%
-      filter(Player %in% input$playerTablePlayer)
+      filter(Player %in% input$playerTablePlayer) %>%
+      filter(season %in% input$playerTableSeason)
   })
   
   # update player list based on selected positions

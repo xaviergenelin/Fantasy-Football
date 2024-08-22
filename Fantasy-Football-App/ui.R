@@ -329,6 +329,18 @@ shinyUI(navbarPage(
             options = pickerOptions(actionsBox = TRUE)
           ),
           
+          conditionalPanel(
+            condition = "input.playerTableType == 'Weekly'",
+            pickerInput(
+              label = "Select week(s)",
+              inputId = "playerTableWeek",
+              choices = sort(unique(player_weekly$week)),
+              selected = unique(player_weekly$week),
+              multiple = TRUE,
+              options = pickerOptions(actionsBox = TRUE)
+            )
+          ),
+          
           pickerInput(
             inputId = "playerTablePosition",
             label = "Select position(s)",
