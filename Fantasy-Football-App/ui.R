@@ -49,18 +49,19 @@ shinyUI(navbarPage(
                  "I'd also like to do some other nerdy statistical stuff but I'm still working on how I want to approach it.",
                  br(),
                  br(),
-                 "If there are any thoughts you have about any additions you'd like to see or any modifications to what I have currently, I'd love to hear them!",
-                 "None of this is set in stone and just is a starting point.",
-
-                 h3("Some Quick Notes:"),
-                 "The player comparison line graph I'm looking to show 0's for weeks a player doesn't play. Currently it just jumps to the next point and continues
-                 the line. I think it can be a little cleaner.",
-                 br(),
-                 "I'm also still trying to figure out the colors for the player comparison. In the stacked bar chart those seemed to work well, but don't look as nice
-                 in the line graph.",
-                 br(),
-                 "Lastly, I'm hoping to add in the ability to select columns of interest for both data tables. So instead of scrolling to see rushing or kicking data,
-                 you can just select that option and those columns will appear."
+                 "If there are any thoughts you have about any additions you'd like to see or any modifications to what I have currently, I'd love to hear them!"
+                 # ,
+                 # "None of this is set in stone and just is a starting point.",
+                 # 
+                 # h3("Some Quick Notes:"),
+                 # "The player comparison line graph I'm looking to show 0's for weeks a player doesn't play. Currently it just jumps to the next point and continues
+                 # the line. I think it can be a little cleaner.",
+                 # br(),
+                 # "I'm also still trying to figure out the colors for the player comparison. In the stacked bar chart those seemed to work well, but don't look as nice
+                 # in the line graph.",
+                 # br(),
+                 # "Lastly, I'm hoping to add in the ability to select columns of interest for both data tables. So instead of scrolling to see rushing or kicking data,
+                 # you can just select that option and those columns will appear."
                  ),
                
                tabPanel(
